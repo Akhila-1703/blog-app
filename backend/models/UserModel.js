@@ -9,7 +9,7 @@ const UserSchema = new Schema({
     minlength: [2, "First name should contain atleast 2 characters"],
     maxlength: [30, "First name cannot exceed 30 characters"],
     validate: {
-      validator: function(value) {
+      validator: function (value) {
         return value.trim().length > 0
       },
       message: "First name cannot be empty"
@@ -21,7 +21,7 @@ const UserSchema = new Schema({
     trim: true,
     maxlength: [30, "Last name cannot exceed 30 characters"],
     validate: {
-      validator: function(value) {
+      validator: function (value) {
 
         // allow empty last name
         if (!value) return true
@@ -50,7 +50,7 @@ const UserSchema = new Schema({
     minlength: [6, "Password should contain atleast 6 characters"],
     maxlength: [100, "Password is too long"],
     validate: {
-      validator: function(value) {
+      validator: function (value) {
         return value.trim().length > 0
       },
       message: "Password cannot be empty"
@@ -77,58 +77,13 @@ const UserSchema = new Schema({
   },
 
 },
-{
-  timestamps: true,
-  strict: "throw",
-  versionKey: false
-})
+  {
+    timestamps: true,
+    strict: "throw",
+    versionKey: false
+  })
 
 // indexes
 UserSchema.index({ email: 1 })
 
 export const UserTypeModel = model("user", UserSchema);
-
-
-
-/*import { Schema, model } from "mongoose";
-
-const userSchema = new Schema(
-  {
-    firstName: {
-      type: String,
-      required: [true, "First name is required"],
-    },
-    lastName: {
-      type: String,
-    },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      unique: [true, "Email already existed"],
-    },
-    password: {
-      type: String,
-      required: [true, "Password is required"],
-    },
-    profileImageUrl: {
-      type: String,
-    },
-    role: {
-      type: String,
-      enum: ["AUTHOR", "USER", "ADMIN"],
-      required: [true, "{Value} is an invalid role"],
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-  },
-  {
-    timestamps: true,
-    strict: "throw",
-    versionKey: false,
-  },
-);
-
-//create model
-export const UserTypeModel = model("user", userSchema);*/

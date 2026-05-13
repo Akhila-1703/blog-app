@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
+import API_BASE_URL from "../config/apiConfig";
 
 import {
   formCard,
@@ -53,7 +54,7 @@ function EditArticle() {
       data.articleId = article._id;
 
       let res = await axios.put(
-        "http://localhost:4000/author-api/articles",
+        `${API_BASE_URL}/author-api/articles`,
         data,
         {
           withCredentials: true

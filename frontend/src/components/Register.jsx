@@ -16,6 +16,7 @@ import { NavLink } from "react-router";
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router";
+import API_BASE_URL from "../config/apiConfig";
 
 function Register() {
   const { register, handleSubmit } = useForm();
@@ -44,8 +45,8 @@ function Register() {
       // Determine URL based on role
       const url =
         role === "author"
-          ? "http://localhost:4000/author-api/users"
-          : "http://localhost:4000/user-api/users";
+          ? `${API_BASE_URL}/author-api/users`
+          : `${API_BASE_URL}/user-api/users`;
 
       const resObj = await axios.post(url, formData, {
         headers: { "Content-Type": "multipart/form-data" },
