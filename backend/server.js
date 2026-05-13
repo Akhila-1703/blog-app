@@ -18,7 +18,8 @@ const app = exp()
 app.use(cors({
   origin: [
     "http://localhost:5173",
-    "https://blogapp1-sigma.vercel.app"
+    "https://blogapp1-sigma.vercel.app",
+    "https://blog-app-xi-lovat.vercel.app"
   ],
   credentials: true
 }));
