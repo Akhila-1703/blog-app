@@ -119,13 +119,32 @@ commonRouter.put(
 //Page Refresh
 commonRouter.get(
   "/check-auth",
-  verifyToken("USER", "AUTHOR", "ADMIN"),
-  (req, res) => {
+  async (req, res) => {
+    try {
+      const token = req.cookies.token;
 
-    res.status(200).json({
-      message: "authenticated",
-      payload: req.user
-    })
+      if (!token) {
+        return res.status(200).json({
+          message: "not authenticated",
+          payload: null
+        });
+      }
+
+      const decoded = await import('jsonwebtoken').then(jwt => 
+        jwt.default.verify(token, process.env.JWT_SECRET)
+      );
+
+      res.status(200).json({
+        message: "authenticated",
+        payload: decoded
+      });
+
+    } catch (err) {
+      res.status(200).json({
+        message: "not authenticated",
+        payload: null
+      });
+    }
   }
 )
 
