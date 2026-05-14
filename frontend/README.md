@@ -26,28 +26,28 @@ graph TD
     Root --> Footer[Footer.jsx]
     Root --> Toaster[react-hot-toast]
 
-    Outlet --> Public[Public Routes]
-    Outlet --> Protected[Protected Dashboard Routes]
+    Outlet --> Public["Public Routes"]
+    Outlet --> Protected["Protected Dashboard Routes"]
 
-    subgraph Public Routes
+    subgraph PublicRoutes ["Public Routes"]
         Public --> Home[Home.jsx]
-        Public --> Auth[Login/Register.jsx]
+        Public --> Auth["Login/Register.jsx"]
         Public --> Article[ArticleByID.jsx]
         Public --> Unauth[Unauthorized.jsx]
     end
 
-    subgraph Protected Routes (Guarded by ProtectedRoute.jsx)
-        Protected -->|Role: USER| UserDash[UserDashboard.jsx]
-        Protected -->|Role: AUTHOR| AuthorDash[AuthorDashboard.jsx]
-        Protected -->|Role: ADMIN| AdminDash[AdminDashboard.jsx]
+    subgraph ProtectedRoutes ["Protected Routes (Guarded by ProtectedRoute.jsx)"]
+        Protected -->|"Role: USER"| UserDash[UserDashboard.jsx]
+        Protected -->|"Role: AUTHOR"| AuthorDash[AuthorDashboard.jsx]
+        Protected -->|"Role: ADMIN"| AdminDash[AdminDashboard.jsx]
         
         UserDash --> UHome[UserHome.jsx]
         AuthorDash --> Write[WriteArticle.jsx]
         AdminDash --> AHome[AdminHome.jsx]
     end
 
-    Header -.->|Reads state| Zustand[(Zustand authStore)]
-    Protected -.->|Verifies Role| Zustand
+    Header -.->|"Reads state"| Zustand[("Zustand authStore")]
+    Protected -.->|"Verifies Role"| Zustand
 ```
 
 ---
