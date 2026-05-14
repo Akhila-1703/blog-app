@@ -11,7 +11,7 @@
 
 A modern, responsive, and secure blogging platform built from the ground up with the **MERN Stack**. Designed with an enterprise-grade **Role-Based Access Control (RBAC)** architecture to deliver distinct experiences for Readers, Creators, and Administrators.
 
-*[Insert Demo Screenshot or GIF Here]*
+![Blog App Demo UI](./docs/demo.png)
 
 </div>
 
