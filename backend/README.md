@@ -1,157 +1,244 @@
-# Blog App Backend - Documentation
+# 📝 Comprehensive Backend Documentation - Blog Application
 
-This is the backend of the Blog Application, built with **Node.js**, **Express**, and **MongoDB**. It handles user authentication, article management, role-based access control (RBAC), and image uploads using Cloudinary.
-
-## 🚀 Tech Stack
-
-### Core Technologies
-- **Node.js**: JavaScript runtime environment.
-- **Express.js**: Web framework for building APIs.
-- **MongoDB**: NoSQL database for data storage.
-- **Mongoose**: ODM (Object Data Modeling) library for MongoDB and Node.js.
-
-### Installed Packages & Dependencies
-| Package | Purpose |
-| :--- | :--- |
-| `express` | Web framework for routing and middleware. |
-| `mongoose` | Schema-based solution for MongoDB interaction. |
-| `dotenv` | Loads environment variables from a `.env` file. |
-| `jsonwebtoken` (JWT) | Handles secure user authentication via tokens. |
-| `bcryptjs` | Hashes passwords for secure storage. |
-| `cookie-parser` | Parses cookies for handling JWT in HTTP-only cookies. |
-| `cors` | Enables Cross-Origin Resource Sharing for the frontend. |
-| `multer` | Middleware for handling `multipart/form-data` (image uploads). |
-| `cloudinary` | Cloud service for storing and managing images. |
+Welcome to the definitive guide for the backend of the Blog Application. This document provides an exhaustive, granular breakdown of every file, dependency, schema, API route, and configuration setting used in the project.
 
 ---
 
-## 📂 Project Structure
+## 🏗️ 1. Architecture & System Flow
 
-```text
-backend/
-├── APIs/               # Route handlers for different roles
-│   ├── AdminAPI.js     # Admin specific routes
-│   ├── AuthorAPI.js    # Author specific routes
-│   ├── UserAPI.js      # User specific routes
-│   └── CommonAPI.js    # Login, Logout, and Shared routes
-├── config/             # Configuration files (DB, Cloudinary, Multer)
-├── middlewares/        # Custom middlewares (Auth verification, Error handling)
-├── models/             # Mongoose Schemas & Models
-├── services/           # Business logic (Authentication logic)
-├── server.js           # Entry point of the application
-└── .env                # Environment variables (Internal use)
-```
+This backend is built on a **Node.js** + **Express.js** + **MongoDB (Mongoose)** stack.
+- **Client Requests** arrive via HTTP/HTTPS.
+- **CORS** allows requests only from the specified frontend URL.
+- **Cookie Parser** extracts the JWT token from HTTP-only cookies.
+- **Middlewares** (like `verifyToken`) intercept requests to ensure the user is authenticated and authorized for that specific route.
+- **Multer** intercepts file uploads, validates them in memory, and then they are pushed to **Cloudinary**.
+- **Controllers (APIs)** handle the request logic.
+- **Services (`authService.js`)** abstract complex business logic like password hashing and token generation.
+- **Mongoose Models** enforce schema structure and database-level validation before saving to **MongoDB**.
+- A **Global Error Handler** catches and formats all application errors seamlessly.
 
 ---
 
-## 🗄️ Database Schemas
+## 📦 2. Complete Technology Stack & Dependencies
 
-The project uses two primary collections: `users` and `articles`.
+Below is every package used, including *why* and *how* it is used in the project.
 
-### 1. User Schema (`UserModel.js`)
-Stores information for all three roles: **USER**, **AUTHOR**, and **ADMIN**.
-
-| Field | Type | Description |
+| Package | Version | Detailed Purpose & Usage in Project |
 | :--- | :--- | :--- |
-| `firstName` | String | User's first name (Required, 2-30 chars). |
-| `lastName` | String | User's last name (Optional, max 30 chars). |
-| `email` | String | Unique email address (Used for login). |
-| `password` | String | Hashed password. |
-| `profileImageUrl`| String | URL of the user profile image (Cloudinary). |
-| `role` | String | Enum: `["USER", "AUTHOR", "ADMIN"]`. |
-| `isActive` | Boolean | Account status (Used by Admin to block/unblock). |
-| `timestamps` | Date | Automatically tracks `createdAt` and `updatedAt`. |
-
-### 2. Article Schema (`ArticleModel.js`)
-Stores blog posts created by Authors.
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `author` | ObjectId | Reference to the `user` who wrote the article. |
-| `title` | String | Title of the post (3-120 characters). |
-| `category` | String | Enum: `["technology", "programming", "AI", "web development"]`. |
-| `content` | String | The body of the article (20-10,000 characters). |
-| `comments` | Array | Nested schema for user comments. |
-| `isArticleActive`| Boolean | Soft delete status (Default: `true`). |
+| `express` | `^5.2.1` | The core web framework used to create the server, define routes (`express.Router()`), and manage middlewares (`app.use()`). |
+| `mongoose` | `^9.1.5` | ODM (Object Data Modeling) library. Connects to MongoDB (`mongoose.connect`), creates Schemas, enforces strict validation rules, and handles queries (`find`, `findByIdAndUpdate`, `populate`). |
+| `dotenv` | `^17.2.3` | Loads environment variables from `.env` into `process.env`. Initialized at the very top of `server.js` to ensure all modules have access. |
+| `jsonwebtoken` | `^9.0.3` | Generates signed JWTs upon login (expires in `1h`) and decodes them via the `verifyToken` middleware. Used for stateless, sessionless authentication. |
+| `bcryptjs` | `^3.0.3` | Cryptographic library used to hash plain-text passwords (using 10 salt rounds for registration, 12 for password changes) and compare them during login. |
+| `cookie-parser` | `^1.4.7` | Middleware that parses incoming `Cookie` headers. Essential for reading the `token` cookie set during login. |
+| `cors` | `^2.8.6` | Cross-Origin Resource Sharing. Configured with `credentials: true` to allow cookies to be sent across different domains (from frontend to backend). |
+| `multer` | `^2.1.1` | Middleware for handling `multipart/form-data`. Configured to use `memoryStorage()` (keeps files in RAM temporarily) with a strict `2MB` size limit and filters out non `image/jpeg` or `image/png` files. |
+| `cloudinary` | `^2.9.0` | Cloud-based image management service. Used to upload user profile pictures via streams directly from Multer's memory buffer. |
 
 ---
 
-## 🔌 API Endpoints
+## 🚀 3. Installation & Local Setup Guide
 
-### 🟢 Common API (`/common-api`)
-- `POST /login`: Authenticates user and sets JWT in a cookie.
-- `GET /logout`: Clears the authentication cookie.
-- `PUT /change-password`: Updates password for logged-in users.
-- `GET /check-auth`: Verifies if the user is authenticated on page refresh.
+Follow these instructions exactly to get the backend running locally.
 
-### 🔵 User API (`/user-api`)
-- `POST /users`: Register a new user with a profile image.
-- `GET /articles`: View all active articles.
-- `GET /article/:id`: View a specific article with comments.
-- `PUT /articles`: Add a comment to an article.
+### Prerequisites
+- **Node.js** (v18 or higher recommended)
+- **MongoDB Database** (MongoDB Atlas cloud URI or local MongoDB server)
+- **Cloudinary Account** (for image hosting)
 
-### 🟠 Author API (`/author-api`)
-- `POST /users`: Register as an author.
-- `POST /articles`: Create a new blog post.
-- `GET /articles`: View all articles written by the logged-in author.
-- `PUT /articles`: Edit an existing article.
-- `PATCH /articles/:id/status`: Soft delete or restore an article.
+### Step-by-Step Installation
 
-### 🔴 Admin API (`/admin-api`)
-- `GET /articles`: View all articles in the system.
-- `PUT /block-user`: Disable a user/author account.
-- `PUT /unblock-user`: Re-enable a user/author account.
-- `GET /stats`: Get system-wide statistics (counts of users, articles, etc.).
-- `GET /users`: List all registered users.
-
----
-
-## 🛠️ Installation & Setup
-
-1. **Clone the repository**:
+1. **Clone the repository & navigate to the backend:**
    ```bash
    git clone <repository-url>
    cd blog-app/backend
    ```
 
-2. **Install dependencies**:
+2. **Install Node Modules:**
    ```bash
    npm install
    ```
 
-3. **Configure Environment Variables**:
-   Create a `.env` file in the `backend` root and add the following:
+3. **Configure Environment Variables:**
+   Create a file named `.env` in the root of the `backend` folder. **Do not skip this step.**
+   Add the following properties:
    ```env
+   # The port the Express server will run on
    PORT=4000
-   DB_URL=your_mongodb_connection_string
-   JWT_SECRET=your_jwt_secret_key
-   CLOUD_NAME=your_cloudinary_name
+   
+   # Node environment state (use 'development' locally, 'production' on deployment)
+   NODE_ENV=development
+   
+   # MongoDB Connection String (Replace with your actual URI)
+   DB_URL=mongodb+srv://<username>:<password>@cluster0.mongodb.net/blog-db
+   
+   # A secure, random string used to sign JSON Web Tokens
+   JWT_SECRET=your_super_secret_jwt_key_here
+   
+   # Cloudinary Credentials (get these from your Cloudinary Dashboard)
+   CLOUD_NAME=your_cloudinary_cloud_name
    API_KEY=your_cloudinary_api_key
    API_SECRET=your_cloudinary_api_secret
-   NODE_ENV=development
    ```
 
-4. **Run the server**:
-   - For production: `npm start`
-   - For development: `node server.js` (or use `nodemon`)
+4. **Start the Server:**
+   ```bash
+   # Standard start
+   npm start
+   
+   # OR, if you want auto-reloading during development (requires nodemon globally installed)
+   nodemon server.js
+   ```
+
+5. **Verify it's working:**
+   Open your browser and go to `http://localhost:4000/`. You should see:
+   `"Blog App API is running..."`
 
 ---
 
-## 🛡️ Security & Middleware
-- **JWT (JSON Web Token)**: Used for secure, stateless authentication.
-- **Bcrypt.js**: Passwords are never stored in plain text.
-- **HTTP-Only Cookies**: JWTs are stored in cookies with `httpOnly: true` to prevent XSS attacks.
-- **Verify Token Middleware**: Custom middleware ensures users can only access routes permitted by their role.
-- **CORS**: Configured to only allow requests from your specific frontend URL.
+## 📂 4. Deep-Dive Directory & File Structure
+
+Here is the exact layout of the backend and the specific role of every single file.
+
+```text
+backend/
+│
+├── server.js                   # THE ENTRY POINT. Initializes dotenv, sets up CORS (Vercel/localhost), sets up Cookie Parser, mounts all API routes, connects to MongoDB, and handles Global Errors.
+├── package.json                # Defines scripts (npm start) and lists all project dependencies.
+├── package-lock.json           # Locks dependency versions for consistent installs.
+├── .gitignore                  # Prevents node_modules and .env from being pushed to GitHub.
+│
+├── config/                     # Configuration logic separated from main code
+│   ├── cloudinary.js           # Initializes the `cloudinary` object with env variables.
+│   ├── cloudinaryUpload.js     # Exposes `uploadToCloudinary(buffer)`, a Promise wrapper around Cloudinary's `upload_stream` targeting the "blog_users" folder.
+│   └── multer.js               # Exports `upload` middleware. Enforces 2MB limit and JPG/PNG only.
+│
+├── models/                     # Mongoose Schemas (Database Structure)
+│   ├── ArticleModel.js         # Defines Article schema & nested User Comment schema.
+│   └── UserModel.js            # Defines User schema, validation rules, and indexes.
+│
+├── services/                   # Business Logic Layer
+│   └── authService.js          # Contains `register()` (hashes password, saves user) and `authenticate()` (verifies email, checks if blocked, compares hash, signs JWT).
+│
+├── middlewares/                # Custom Express Middlewares
+│   └── verifyToken.js          # Extracts JWT from cookie, verifies it using JWT_SECRET, checks if the user's role matches `allowedRoles`, and attaches user data to `req.user`.
+│
+└── APIs/                       # Route Controllers (Grouped by entity/role)
+    ├── AdminAPI.js             # Routes exclusively for ADMIN operations.
+    ├── AuthorAPI.js            # Routes for AUTHOR operations (writing/editing articles).
+    ├── UserAPI.js              # Routes for standard USER operations.
+    └── CommonAPI.js            # Routes accessible to anyone (login, logout) or all authenticated users (change password).
+```
 
 ---
 
-## 📝 Error Handling
-The backend implements a global error-handling middleware in `server.js` that catches:
-- Mongoose Validation Errors (400)
-- Cast Errors (Invalid IDs) (400)
-- Duplicate Key Errors (e.g., duplicate email) (409)
-- Custom Status Errors
+## 🗄️ 5. Database Schemas (Mongoose)
+
+The project utilizes `strict: "throw"` to reject unknown fields and sets `versionKey: false` to remove the default `__v` field. Timestamps (`createdAt`, `updatedAt`) are automatically managed.
+
+### A. User Model (`UserModel.js`)
+**Collection Name:** `users`
+**Indexes:** `email` (ascending)
+
+| Field | Type | Validation / Rules |
+| :--- | :--- | :--- |
+| `firstName` | String | **Required**. Min 2, Max 30 chars. Trims whitespace. Custom validator prevents empty strings. |
+| `lastName` | String | Optional. Max 30 chars. Trims whitespace. |
+| `email` | String | **Required**, **Unique**. Lowercased. Validated using a standard Email Regex pattern. |
+| `password` | String | **Required**. Min 6, Max 100 chars. (Stored as a bcrypt hash). |
+| `profileImageUrl` | String | Optional. Defaults to a standard avatar URL if no image is uploaded. |
+| `role` | String | **Required**. Enum allowed values: `["AUTHOR", "USER", "ADMIN"]`. |
+| `isActive` | Boolean | Optional. Defaults to `true`. Determines if the user is blocked. |
+
+### B. Article Model (`ArticleModel.js`)
+**Collection Name:** `articles`
+**Indexes:** `author` (ascending), `category` (ascending)
+
+| Field | Type | Validation / Rules |
+| :--- | :--- | :--- |
+| `author` | ObjectId | **Required**. Refers to a document in the `users` collection. |
+| `title` | String | **Required**. Min 3, Max 120 chars. Trims whitespace. |
+| `category` | String | **Required**. Enum: `["technology", "programming", "AI", "web development"]`. |
+| `content` | String | **Required**. Min 20, Max 10,000 chars. Trims whitespace. |
+| `comments` | Array | Array of nested `userCommentSchema` objects. |
+| `isArticleActive` | Boolean | Optional. Defaults to `true`. Used for "Soft Deletes" (hiding articles without destroying data). |
+
+#### Nested Schema: `userCommentSchema`
+| Field | Type | Validation / Rules |
+| :--- | :--- | :--- |
+| `user` | ObjectId | Refers to a document in the `users` collection. |
+| `comment` | String | **Required**. Min 2, Max 500 chars. |
+| `timestamps`| Date | Auto-generates `createdAt` and `updatedAt` for the comment. |
 
 ---
-*Developed as part of the Blog Application Project.*
+
+## 🌐 6. Exhaustive API Route Reference
+
+### 🟢 Common API (`/common-api`)
+These routes handle universal tasks.
+
+| Method | Endpoint | Auth Required? | Purpose & Details |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/login` | None | Expects `{ email, password }`. Checks DB, compares hash, verifies `isActive`. On success, sets an HTTP-only `token` cookie. |
+| `GET` | `/logout` | None | Clears the `token` cookie from the client's browser. |
+| `PUT` | `/change-password`| USER, AUTHOR, ADMIN | Expects `{ currentPassword, newPassword }`. Validates old password, hashes new password (12 rounds), updates DB. |
+| `GET` | `/check-auth` | None | Reads cookie. If valid, returns decoded JWT payload. Used by React to persist session on page reloads. |
+
+### 🔵 User API (`/user-api`)
+Routes for readers/consumers.
+
+| Method | Endpoint | Auth Required? | Purpose & Details |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/users` | None | Registers a user. Uses `multer` (`upload.single("profileImageUrl")`). Expects `multipart/form-data`. Uploads to Cloudinary, saves to DB with role `"USER"`. |
+| `GET` | `/articles` | USER | Fetches all articles where `isArticleActive: true`. Populates `author` details (name, email, image). |
+| `GET` | `/article/:id` | USER, AUTHOR, ADMIN | Fetches a specific active article. Populates both `author` details and `comments.user` details. |
+| `PUT` | `/articles` | USER | Expects `{ articleId, comment }`. Validates comment is not empty. Uses `$push` to add a comment to the specific article. |
+
+### 🟠 Author API (`/author-api`)
+Routes for content creators.
+
+| Method | Endpoint | Auth Required? | Purpose & Details |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/users` | None | Registers an author. Uses `multer` (`multipart/form-data`). Uploads image, saves to DB with role `"AUTHOR"`. |
+| `POST` | `/articles` | AUTHOR | Expects `{ title, category, content }`. Attaches the `req.user._id` as the author and saves the new article. |
+| `GET` | `/articles` | AUTHOR | Fetches all articles *only* belonging to the currently logged-in author (`author: req.user._id`). |
+| `PUT` | `/articles` | AUTHOR | Expects `{ articleId, title, category, content }`. Finds article ensuring the logged-in user is the owner, then updates it. |
+| `PATCH`| `/articles/:id/status`| AUTHOR | Expects `{ isArticleActive }`. Soft deletes or restores the article. Verifies ownership before updating. |
+
+### 🔴 Admin API (`/admin-api`)
+Routes for platform management.
+
+| Method | Endpoint | Auth Required? | Purpose & Details |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/articles` | ADMIN | Fetches **all** articles regardless of active status. |
+| `PUT` | `/block-user` | ADMIN | Expects `{ userId }`. Sets user's `isActive` to `false`. Admin cannot block themselves. |
+| `PUT` | `/unblock-user` | ADMIN | Expects `{ userId }`. Sets user's `isActive` to `true`. |
+| `PUT` | `/article-status` | ADMIN | Expects `{ articleId, isArticleActive }`. Allows Admin to forcefully soft delete or restore any article. |
+| `GET` | `/stats` | ADMIN | Returns a payload with counts: `totalUsers`, `totalAuthors`, `totalArticles`, and `activeArticles`. |
+| `GET` | `/users` | ADMIN | Returns a list of all users, excluding their passwords (`select("-password")`). |
+
+---
+
+## 🔒 7. Security Implementations & Middleware Flow
+
+1. **Authentication (JWT & Cookies):**
+   - The backend uses stateless JSON Web Tokens.
+   - When a user logs in, the backend signs a token and attaches it to the response as a cookie using:
+     `res.cookie("token", token, { httpOnly: true, secure: true, sameSite: "none" })` *(in production)*.
+   - `httpOnly: true` prevents Cross-Site Scripting (XSS) attacks by making the cookie inaccessible to frontend JavaScript.
+
+2. **Authorization (`verifyToken.js`):**
+   - Before hitting protected routes, the `verifyToken` middleware intercepts the request.
+   - It reads the cookie. If missing, throws `401 Unauthorized`.
+   - It verifies the signature using `JWT_SECRET`. Handles `TokenExpiredError` specifically.
+   - It checks the decoded `role` against the allowed roles passed to the middleware (e.g., `verifyToken("ADMIN")`). If mismatched, throws `403 Forbidden`.
+
+3. **Global Error Handling (`server.js`):**
+   Instead of crashing the server, errors are passed down via `next(err)` to the global handler at the bottom of `server.js`.
+   - **Mongoose Validation / Cast Errors:** Automatically formatted into `400 Bad Request` with exact field error messages.
+   - **Duplicate Key Errors (Code 11000):** Formatted into `409 Conflict` (e.g., "email already exists").
+   - **Custom Status Errors:** Handled dynamically (e.g., `401`, `403`, `404`).
+   - **Fallback:** Returns `500 Server Error`.
+
+---
+*End of documentation. Everything required to understand, build, modify, and deploy this backend is documented above.*
