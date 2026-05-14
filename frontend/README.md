@@ -79,27 +79,90 @@ Unlike Redux, Zustand provides a simplified, hook-based store. The `authStore.js
 
 ---
 
-## 📂 4. Deep-Dive Directory Structure
+## 📂 4. Exhaustive File & Directory Reference
 
-```text
-frontend/src/
-├── main.jsx                    # Entry point. Mounts React tree.
-├── App.jsx                     # Router config. Maps URLs to Components.
-├── index.css                   # Tailwind entry point.
-│
-├── config/                     
-│   └── apiConfig.js            # Env-aware API base URL logic.
-│
-├── store/                      
-│   └── authStore.js            # Zustand definition.
-│
-└── components/                 # View Layer
-    ├── RootLayout.jsx          # Persistent UI (Nav/Footer).
-    ├── ProtectedRoute.jsx      # HOC interceptor. Checks Role against Zustand.
-    ├── Auth/                   # Login.jsx, Register.jsx
-    ├── Dashboards/             # UserDashboard, AuthorDashboard, AdminDashboard
-    └── Articles/               # ArticleByID, EditArticle, WriteArticle
-```
+Below is a complete, 100% accurate map of every file and folder in the frontend repository, along with its specific architectural purpose.
+
+### Root Configurations
+| File | Purpose |
+| :--- | :--- |
+| `package.json` | Core Node configuration defining dependencies and run scripts (`npm run dev`, `build`). |
+| `package-lock.json` | Locks exact dependency versions to ensure consistent builds across environments. |
+| `vite.config.js` | Vite bundler configuration. Mounts the `@vitejs/plugin-react` and `@tailwindcss/vite` plugins. |
+| `eslint.config.js` | Modern "flat config" for ESLint, ensuring React hook rules (`eslint-plugin-react-hooks`) and fast refresh rules are enforced. |
+| `index.html` | The single HTML file served to the browser. Contains the `<div id="root"></div>` where React mounts. |
+| `vercel.json` | Deployment config. Instructs Vercel to rewrite all routes to `/index.html` (`"rewrites": [{"source": "/(.*)", "destination": "/"}]`), which is mandatory for React Router SPAs. |
+| `.gitignore` | Prevents `node_modules/` and `dist/` from being pushed to Git. |
+
+### `/public` and `/src/assets`
+| File | Purpose |
+| :--- | :--- |
+| `public/vite.svg` | Static asset served directly at the root path (usually the favicon). |
+| `src/assets/react.svg` | Static asset processed by Vite's asset pipeline, importable directly into React components. |
+
+### Source Root (`/src`)
+| File | Purpose |
+| :--- | :--- |
+| `main.jsx` | The React entry point. Calls `createRoot` and renders `<App />` surrounded by StrictMode. |
+| `App.jsx` | The core router file. Uses `createBrowserRouter` to map URLs to specific layout and page components. Contains the `checkAuth` initialization logic. |
+| `index.css` | The global stylesheet. Imports Tailwind via the `@import "tailwindcss";` directive. |
+
+### Configuration & State (`/src/config` & `/src/store`)
+| File | Purpose |
+| :--- | :--- |
+| `config/apiConfig.js` | Dynamically sets `API_BASE_URL`. If `import.meta.env.MODE === 'production'`, it targets the Render backend URL; otherwise, it targets `http://localhost:4000`. |
+| `store/authStore.js` | The Zustand store. Defines `currentUser`, `isAuth`, and the async actions `login()`, `logout()`, and `checkAuth()` utilizing Axios. |
+
+### Styling Utilities (`/src/styles`)
+| File | Purpose |
+| :--- | :--- |
+| `styles/common.js` | A centralized dictionary of Tailwind CSS string variables (e.g., `primaryBtn`, `formCard`, `articleGrid`). This keeps component files extremely clean and ensures UI consistency across the entire app. |
+
+### Components (`/src/components`)
+#### 1. Core Layouts & Wrappers
+| File | Purpose |
+| :--- | :--- |
+| `RootLayout.jsx` | The main UI shell. Renders the `<Header />`, the dynamic `<Outlet />`, the `<Footer />`, and the toast notification container. |
+| `Header.jsx` | Dynamic navigation bar. Reads the user's role from Zustand to render appropriate Dashboard links and handles the logout click. |
+| `Footer.jsx` | Standard UI footer. |
+| `ProtectedRoute.jsx` | The security gatekeeper. An HOC that intercepts requests, checks the user's role against an `allowedRoles` prop, and redirects to `/login` or `/unauthorized` if conditions fail. |
+| `ErrorBoundary.jsx` | Wraps the main router. Catches fatal React rendering errors and displays a friendly fallback UI instead of crashing the browser tab. |
+| `Unauthorized.jsx` | The 403 Forbidden page displayed when a user attempts to access a restricted dashboard. |
+
+#### 2. Public Views & Authentication
+| File | Purpose |
+| :--- | :--- |
+| `Home.jsx` | The landing page of the application. |
+| `Login.jsx` | Renders the login form using `react-hook-form` and triggers `authStore.login()`. |
+| `Register.jsx` | Renders the registration form. Allows role selection (USER/AUTHOR) and profile image uploads via `FormData`. |
+
+#### 3. User Dashboard
+| File | Purpose |
+| :--- | :--- |
+| `UserDashboard.jsx` | Persistent layout wrapper for the `/user-dashboard/*` routes. |
+| `UserHome.jsx` | The feed of all active articles for readers to browse. |
+| `UserProfile.jsx` | Displays the user's details and contains the "Change Password" functionality. |
+
+#### 4. Author Dashboard
+| File | Purpose |
+| :--- | :--- |
+| `AuthorDashboard.jsx` | Persistent layout wrapper for the `/author-dashboard/*` routes. |
+| `AuthorProfile.jsx` | Profile view specifically tailored for content creators. |
+| `AuthorArticles.jsx` | Displays a filtered list of only the articles authored by the currently logged-in user. |
+| `WriteArticle.jsx` | The article creation form utilizing `react-hook-form`. |
+| `EditArticleForm.jsx` | The modification interface for existing articles, pre-hydrated with current data. |
+
+#### 5. Admin Dashboard
+| File | Purpose |
+| :--- | :--- |
+| `AdminDashboard.jsx` | Persistent layout wrapper for the `/admin-dashboard/*` routes. |
+| `AdminHome.jsx` | The moderation control panel. Displays system stats, blocks/unblocks users, and forces articles to activate/deactivate. |
+| `AdminProfile.jsx` | Profile view for the system administrator. |
+
+#### 6. Shared Article Views
+| File | Purpose |
+| :--- | :--- |
+| `ArticleByID.jsx` | The detailed article view accessible via `/article/:id`. Renders the full content, author info, and the interactive comment thread. |
 
 ---
 
