@@ -1,6 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 
-import { NavLink, useNavigate } from "react-router";
+import {
+  NavLink,
+  useNavigate,
+} from "react-router";
 
 import { useAuth } from "../store/authStore";
 
@@ -22,36 +29,75 @@ function Header() {
   const {
     currentUser,
     isAuthenticated,
-    logout
+    logout,
   } = useAuth();
 
-  const [openProfileMenu, setOpenProfileMenu] = useState(false);
+  const [openProfileMenu, setOpenProfileMenu] =
+    useState(false);
 
   const profileRef = useRef(null);
 
-  const handleLogout = async () => {
-
-    await logout();
-
-    toast.success("Logged out successfully");
-
-    navigate("/login");
-  };
+  // =================================================
+  // DASHBOARD PATH
+  // =================================================
 
   const dashboardPath =
     currentUser?.role === "AUTHOR"
-      ? "/author-profile"
-      : "/user-profile";
+      ? "/author-dashboard"
+      : currentUser?.role === "ADMIN"
+      ? "/admin-dashboard"
+      : "/user-dashboard";
 
-  // CLOSE MENU
+  // =================================================
+  // PROFILE PATH
+  // =================================================
+
+  const profilePath =
+    currentUser?.role === "AUTHOR"
+      ? "/author-dashboard/profile"
+      : currentUser?.role === "ADMIN"
+      ? "/admin-dashboard/profile"
+      : "/user-dashboard/profile";
+
+  // =================================================
+  // LOGOUT
+  // =================================================
+
+  const handleLogout = async () => {
+
+    setOpenProfileMenu(false);
+
+    await logout();
+
+    toast.success(
+      "Logged out successfully"
+    );
+
+    navigate(
+      "/login",
+      {
+        replace: true,
+      }
+    );
+  };
+
+  // =================================================
+  // CLOSE DROPDOWN
+  // =================================================
+
   useEffect(() => {
 
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (
+      event
+    ) => {
 
       if (
         profileRef.current &&
-        !profileRef.current.contains(event.target)
+        !profileRef.current.contains(
+          event.target
+        )
       ) {
+
         setOpenProfileMenu(false);
       }
     };
@@ -73,11 +119,18 @@ function Header() {
 
   return (
 
-    <header className={`${navbarClass} h-[74px] flex items-center`}>
+    <header
+      className={`${navbarClass} h-[74px] flex items-center`}
+    >
 
-      <div className={`${navContainerClass} w-full`}>
+      <div
+        className={`${navContainerClass} w-full`}
+      >
 
+        {/* ================================================= */}
         {/* LEFT */}
+        {/* ================================================= */}
+
         <div className="flex items-center gap-14">
 
           {/* LOGO */}
@@ -92,7 +145,9 @@ function Header() {
 
             </div>
 
-            <h1 className={`${navBrandClass} text-[1.65rem]`}>
+            <h1
+              className={`${navBrandClass} text-[1.65rem]`}
+            >
               bloggr
             </h1>
 
@@ -103,6 +158,7 @@ function Header() {
 
             <ul className={navLinksClass}>
 
+              {/* HOME */}
               <li>
 
                 <NavLink
@@ -118,12 +174,14 @@ function Header() {
 
               </li>
 
+              {/* DASHBOARD */}
               {isAuthenticated && (
 
                 <li>
 
                   <NavLink
                     to={dashboardPath}
+                    end
                     className={({ isActive }) =>
                       isActive
                         ? navLinkActiveClass
@@ -143,12 +201,16 @@ function Header() {
 
         </div>
 
+        {/* ================================================= */}
         {/* RIGHT */}
+        {/* ================================================= */}
+
         <div className="flex items-center gap-3">
 
           {!isAuthenticated ? (
 
             <>
+              {/* LOGIN */}
               <NavLink
                 to="/login"
                 className={({ isActive }) =>
@@ -160,6 +222,7 @@ function Header() {
                 Login
               </NavLink>
 
+              {/* REGISTER */}
               <NavLink
                 to="/register"
                 className="bg-black text-white text-sm px-5 py-2.5 rounded-full hover:bg-[#1d1d1f] transition-all duration-300"
@@ -178,7 +241,9 @@ function Header() {
               {/* PROFILE BUTTON */}
               <button
                 onClick={() =>
-                  setOpenProfileMenu(!openProfileMenu)
+                  setOpenProfileMenu(
+                    !openProfileMenu
+                  )
                 }
                 className="flex items-center gap-3 border border-[#ececec] rounded-full pl-2 pr-4 py-1.5 bg-white hover:bg-[#fafafa] transition-all duration-300"
               >
@@ -211,10 +276,12 @@ function Header() {
 
                 <div className="absolute right-0 top-16 w-56 bg-white border border-[#ececec] rounded-2xl shadow-sm overflow-hidden z-50">
 
+                  {/* USER INFO */}
                   <div className="px-5 py-4 border-b border-[#f1f1f1]">
 
                     <p className="text-sm font-semibold text-black">
-                      {currentUser?.firstName} {currentUser?.lastName}
+                      {currentUser?.firstName}{" "}
+                      {currentUser?.lastName}
                     </p>
 
                     <p className="text-xs text-gray-400 mt-1">
@@ -223,15 +290,20 @@ function Header() {
 
                   </div>
 
+                  {/* ACTIONS */}
                   <div className="p-2">
 
                     {/* PROFILE */}
                     <button
                       onClick={() => {
 
-                        navigate(`${dashboardPath}/profile`);
+                        navigate(
+                          profilePath
+                        );
 
-                        setOpenProfileMenu(false);
+                        setOpenProfileMenu(
+                          false
+                        );
                       }}
                       className="w-full text-left px-4 py-3 rounded-xl text-sm hover:bg-[#f7f7f7] transition"
                     >
@@ -240,7 +312,9 @@ function Header() {
 
                     {/* LOGOUT */}
                     <button
-                      onClick={handleLogout}
+                      onClick={
+                        handleLogout
+                      }
                       className="w-full text-left px-4 py-3 rounded-xl text-sm text-red-500 hover:bg-red-50 transition"
                     >
                       Logout

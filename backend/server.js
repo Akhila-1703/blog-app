@@ -2,6 +2,8 @@ import exp from 'express'
 import { connect } from 'mongoose'
 import { config } from 'dotenv'
 
+config()
+
 import { userRoute } from './APIs/UserAPI.js'
 import { adminRoute } from './APIs/AdminAPI.js'
 import { authorRoute } from './APIs/AuthorAPI.js'
@@ -9,8 +11,6 @@ import { commonRouter } from './APIs/CommonAPI.js'
 
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
-
-config()
 
 const app = exp()
 

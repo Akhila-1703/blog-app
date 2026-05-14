@@ -1,41 +1,82 @@
-import React, { useEffect } from 'react'
-import Header from './Header'
-import Footer from './Footer'
-import { Outlet } from 'react-router'
-import { useAuth } from "../store/authStore"
+import React, { useEffect } from "react";
+
+import Header from "./Header";
+
+import Footer from "./Footer";
+
+import { Outlet } from "react-router";
+
+import { useAuth } from "../store/authStore";
 
 function RootLayout() {
 
-  const checkAuth = useAuth((state) => state.checkAuth);
+  const checkAuth = useAuth(
+    (state) => state.checkAuth
+  );
 
-  const loading = useAuth((state) => state.loading);
+  const loading = useAuth(
+    (state) => state.loading
+  );
+
+  // ============================================
+  // CHECK AUTH ON APP LOAD
+  // ============================================
 
   useEffect(() => {
+
     checkAuth();
-  }, []);
+
+  }, [checkAuth]);
+
+  // ============================================
+  // GLOBAL LOADING SCREEN
+  // ============================================
 
   if (loading) {
+
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <p className="text-lg">
-          Checking authentication...
-        </p>
+
+      <div className="min-h-screen flex items-center justify-center bg-white">
+
+        <div className="flex flex-col items-center gap-4">
+
+          {/* LOADER */}
+          <div className="w-10 h-10 border-4 border-[#ececec] border-t-black rounded-full animate-spin"></div>
+
+          <p className="text-sm text-gray-500 tracking-wide">
+            Checking authentication...
+          </p>
+
+        </div>
+
       </div>
+
     );
   }
 
-  return (
-    <div>
+  // ============================================
+  // APP LAYOUT
+  // ============================================
 
+  return (
+
+    <div className="min-h-screen flex flex-col bg-white">
+
+      {/* HEADER */}
       <Header />
 
-      <div className="min-h-screen">
-        <Outlet />
-      </div>
+      {/* MAIN CONTENT */}
+      <main className="flex-1">
 
+        <Outlet />
+
+      </main>
+
+      {/* FOOTER */}
       <Footer />
 
     </div>
+
   );
 }
 

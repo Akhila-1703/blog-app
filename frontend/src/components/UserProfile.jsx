@@ -1,20 +1,21 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "../store/authStore";
-import { useNavigate } from "react-router";
+import React, { useState } from "react";
+
 import axios from "axios";
+
+import toast from "react-hot-toast";
+
+import { useAuth } from "../store/authStore";
+
 import API_BASE_URL from "../config/apiConfig";
 
 import {
   pageWrapper,
-  articleGrid,
-  articleCardClass,
-  articleTitle,
-  articleBody,
-  ghostBtn,
-  loadingClass,
+  inputClass,
+  labelClass,
+  formGroup,
+  submitBtn,
   errorClass,
-  timestampClass,
-} from "../styles/common.js";
+} from "../styles/common";
 
 function UserProfile() {
 
@@ -22,45 +23,104 @@ function UserProfile() {
     (state) => state.currentUser
   );
 
-  const navigate = useNavigate();
+  const [showPasswordForm, setShowPasswordForm] =
+    useState(false);
 
-  const [articles, setArticles] = useState([]);
+  const [passwordData, setPasswordData] =
+    useState({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [error, setError] = useState(null);
+  const [error, setError] =
+    useState("");
 
-  const navigateToArticleById = (articleObj) => {
+  // =================================================
+  // HANDLE INPUT CHANGE
+  // =================================================
 
-    navigate(`/article/${articleObj._id}`, {
-      state: articleObj,
+  const handleChange = (e) => {
+
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]:
+        e.target.value,
     });
   };
 
-  useEffect(() => {
+  // =================================================
+  // CHANGE PASSWORD
+  // =================================================
 
-    const getAllArticles = async () => {
+  const handlePasswordChange =
+    async (e) => {
 
-      setLoading(true);
+      e.preventDefault();
+
+      setError("");
+
+      if (
+        passwordData.newPassword !==
+        passwordData.confirmPassword
+      ) {
+
+        return setError(
+          "New password and confirm password do not match"
+        );
+      }
+
+      if (
+        passwordData.newPassword
+          .length < 6
+      ) {
+
+        return setError(
+          "Password must contain at least 6 characters"
+        );
+      }
 
       try {
 
-        const res = await axios.get(
-          `${API_BASE_URL}/user-api/articles`,
+        setLoading(true);
+
+        const res = await axios.put(
+          `${API_BASE_URL}/common-api/change-password`,
+          {
+            currentPassword:
+              passwordData.currentPassword,
+
+            newPassword:
+              passwordData.newPassword,
+          },
           {
             withCredentials: true,
           }
         );
 
-        setArticles(res.data.payload);
+        toast.success(
+          res.data.message
+        );
+
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+
+        setShowPasswordForm(
+          false
+        );
 
       } catch (err) {
 
-        console.error(err);
-
         setError(
-          err.response?.data?.error ||
-          "Something went wrong"
+          err.response?.data
+            ?.message ||
+            "Failed to change password"
         );
 
       } finally {
@@ -69,67 +129,65 @@ function UserProfile() {
       }
     };
 
-    getAllArticles();
-
-  }, []);
-
-  const formatDateIST = (date) => {
-
-    return new Date(date).toLocaleString(
-      "en-IN",
-      {
-        timeZone: "Asia/Kolkata",
-        dateStyle: "medium",
-        timeStyle: "short",
-      }
-    );
-  };
-
-  if (loading) {
-
-    return (
-      <p className={loadingClass}>
-        Loading articles...
-      </p>
-    );
-  }
-
   return (
 
     <div className={pageWrapper}>
 
-      {error && (
-        <p className={errorClass}>
-          {error}
+      {/* ================================================= */}
+      {/* HEADER */}
+      {/* ================================================= */}
+
+      <div className="mb-8">
+
+        <p className="uppercase tracking-[0.22em] text-[10px] text-gray-400 mb-2">
+          Account
         </p>
-      )}
 
+        <h1 className="text-3xl font-bold tracking-tight text-black">
+          User Profile
+        </h1>
+
+      </div>
+
+      {/* ================================================= */}
       {/* PROFILE CARD */}
-      {currentUser && (
+      {/* ================================================= */}
 
-        <div className="border border-[#ececec] rounded-3xl p-8 mb-14 bg-[#fafafa]">
+      <div className="border-2 border-[#e8e8e8] rounded-3xl p-7 bg-white">
 
-          <div className="flex items-center gap-5">
+        <div className="flex items-center gap-6">
+
+          {/* IMAGE */}
+          <div className="shrink-0">
 
             <img
               src={
-                currentUser.profileImageUrl ||
-                "https://via.placeholder.com/100"
+                currentUser?.profileImageUrl ||
+                "https://via.placeholder.com/120"
               }
               alt="profile"
-              className="w-20 h-20 rounded-full object-cover border border-gray-300"
+              className="w-20 h-20 rounded-3xl object-cover border-2 border-[#e8e8e8]"
             />
 
-            <div>
+          </div>
 
-              <h2 className="text-3xl font-bold tracking-tight text-black">
-                Welcome, {currentUser.firstName}
-              </h2>
+          {/* DETAILS */}
+          <div className="flex flex-col justify-center">
 
-              <p className="text-gray-500 mt-2">
-                Explore the latest stories and
-                articles from the community.
-              </p>
+            <h2 className="text-xl font-semibold text-black leading-tight">
+              {currentUser?.firstName}{" "}
+              {currentUser?.lastName}
+            </h2>
+
+            <p className="text-gray-500 text-sm mt-2 leading-relaxed">
+              {currentUser?.email}
+            </p>
+
+            <div className="mt-3">
+
+              <span className="inline-flex items-center justify-center min-h-[28px] px-3 rounded-full bg-black text-white text-[10px] tracking-[0.15em] uppercase">
+                {currentUser?.role}
+              </span>
 
             </div>
 
@@ -137,100 +195,154 @@ function UserProfile() {
 
         </div>
 
-      )}
+      </div>
 
-      {/* ARTICLES HEADER */}
-      <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
+      {/* ================================================= */}
+      {/* SECURITY */}
+      {/* ================================================= */}
 
-        <div>
+      <div className="border-2 border-[#e8e8e8] rounded-3xl p-7 bg-white mt-6">
 
-          <p className="uppercase tracking-[0.2em] text-xs text-gray-400 mb-3">
-            Dashboard
-          </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
 
-          <h2 className="text-4xl font-bold tracking-tight text-black">
-            Latest Articles
-          </h2>
+          <div className="max-w-xl">
+
+            <h3 className="text-xl font-semibold text-black leading-tight">
+              Security
+            </h3>
+
+            <p className="text-gray-500 text-sm mt-2 leading-7">
+              Update your password regularly
+              to keep your account secure.
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            onClick={() =>
+              setShowPasswordForm(
+                !showPasswordForm
+              )
+            }
+            className="shrink-0 border-2 border-black px-5 py-2.5 rounded-full text-xs font-medium hover:bg-black hover:text-white transition-all duration-300"
+          >
+            {showPasswordForm
+              ? "Cancel"
+              : "Change Password"}
+          </button>
 
         </div>
 
-        <p className="text-sm text-gray-500">
-          {articles.length} Articles Available
-        </p>
+        {/* ================================================= */}
+        {/* PASSWORD FORM */}
+        {/* ================================================= */}
 
-      </div>
+        {showPasswordForm && (
 
-      {/* ARTICLES */}
-      {articles?.length > 0 ? (
+          <form
+            onSubmit={
+              handlePasswordChange
+            }
+            className="border-t-2 border-[#e8e8e8] mt-7 pt-7"
+          >
 
-        <div className={articleGrid}>
+            {/* ERROR */}
+            {error && (
 
-          {articles.map((articleObj) => (
+              <div className="mb-5">
 
-            <div
-              key={articleObj._id}
-              className={articleCardClass}
-            >
-
-              <div className="flex flex-col h-full">
-
-                <div className="flex-1">
-
-                  <h3 className={articleTitle}>
-                    {articleObj.title}
-                  </h3>
-
-                  <p className={articleBody}>
-                    {articleObj.content.slice(
-                      0,
-                      120
-                    )}...
-                  </p>
-
-                  <p className={timestampClass}>
-                    {formatDateIST(
-                      articleObj.createdAt
-                    )}
-                  </p>
-
-                </div>
-
-                <button
-                  className={`${ghostBtn} mt-6 self-start`}
-                  onClick={() =>
-                    navigateToArticleById(
-                      articleObj
-                    )
-                  }
-                >
-                  Read Article →
-                </button>
+                <p className={errorClass}>
+                  {error}
+                </p>
 
               </div>
 
+            )}
+
+            {/* CURRENT PASSWORD */}
+            <div className={formGroup}>
+
+              <label className={labelClass}>
+                Current Password
+              </label>
+
+              <input
+                type="password"
+                name="currentPassword"
+                value={
+                  passwordData.currentPassword
+                }
+                onChange={handleChange}
+                placeholder="Enter current password"
+                className={inputClass}
+                required
+              />
+
             </div>
 
-          ))}
+            {/* NEW PASSWORD */}
+            <div className={formGroup}>
 
-        </div>
+              <label className={labelClass}>
+                New Password
+              </label>
 
-      ) : (
+              <input
+                type="password"
+                name="newPassword"
+                value={
+                  passwordData.newPassword
+                }
+                onChange={handleChange}
+                placeholder="Enter new password"
+                className={inputClass}
+                required
+              />
 
-        <div className="text-center py-20">
+            </div>
 
-          <h3 className="text-2xl font-semibold text-black mb-3">
-            No Articles Found
-          </h3>
+            {/* CONFIRM PASSWORD */}
+            <div className={formGroup}>
 
-          <p className="text-gray-500">
-            Articles will appear here once
-            published.
-          </p>
+              <label className={labelClass}>
+                Confirm New Password
+              </label>
 
-        </div>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={
+                  passwordData.confirmPassword
+                }
+                onChange={handleChange}
+                placeholder="Confirm new password"
+                className={inputClass}
+                required
+              />
 
-      )}
+            </div>
 
+            {/* BUTTON */}
+            <div className="mt-6">
+
+              <button
+                type="submit"
+                disabled={loading}
+                className={`${submitBtn} text-sm`}
+              >
+                {loading
+                  ? "Updating..."
+                  : "Update Password"}
+              </button>
+
+            </div>
+
+          </form>
+
+        )}
+
+      </div>
 
     </div>
   );

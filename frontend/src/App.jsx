@@ -1,26 +1,37 @@
 import { createBrowserRouter, RouterProvider } from "react-router";
 
 import RootLayout from "./components/RootLayout";
+
 import Register from "./components/Register";
 import Login from "./components/Login";
 import Home from "./components/Home";
 
+import UserDashboard from "./components/UserDashboard";
 import UserProfile from "./components/UserProfile";
-import UserAccountProfile from "./components/UserAccountProfile";
+import UserHome from "./components/UserHome";
 
+import AuthorDashboard from "./components/AuthorDashboard";
 import AuthorProfile from "./components/AuthorProfile";
-import AuthorAccountProfile from "./components/AuthorAccountProfile";
+
+import AdminDashboard from "./components/AdminDashboard";
+import AdminProfile from "./components/AdminProfile";
+import AdminHome from "./components/AdminHome";
+
+import AuthorArticles from "./components/AuthorArticles";
 
 import ArticleByID from "./components/ArticleByID";
-import AuthorArticles from "./components/AuthorArticles";
+
 import WriteArticle from "./components/WriteArticle";
 
-import { Toaster } from "react-hot-toast";
-
 import EditArticle from "./components/EditArticleForm";
+
 import ProtectedRoute from "./components/ProtectedRoute";
+
 import Unauthorized from "./components/Unauthorized";
+
 import ErrorBoundary from "./components/ErrorBoundary";
+
+import { Toaster } from "react-hot-toast";
 
 function App() {
 
@@ -35,10 +46,18 @@ function App() {
 
       children: [
 
+        // =================================================
+        // HOME
+        // =================================================
+
         {
-          path: "",
+          index: true,
           element: <Home />,
         },
+
+        // =================================================
+        // AUTH
+        // =================================================
 
         {
           path: "register",
@@ -50,32 +69,47 @@ function App() {
           element: <Login />,
         },
 
-       // USER ROUTES
-{
-  path: "user-profile",
+        // =================================================
+        // USER
+        // =================================================
 
-  element:
-    <ProtectedRoute allowedRoles={["USER"]}>
-      <UserProfile />
-    </ProtectedRoute>,
-},
-
-{
-  path: "user-profile/profile",
-
-  element:
-    <ProtectedRoute allowedRoles={["USER"]}>
-      <UserAccountProfile />
-    </ProtectedRoute>,
-},
-
-        // AUTHOR ROUTES
         {
-          path: "author-profile",
+          path: "user-dashboard",
+
+          element:
+            <ProtectedRoute allowedRoles={["USER"]}>
+              <UserDashboard />
+            </ProtectedRoute>,
+
+          children: [
+
+            {
+              index: true,
+              element: <UserHome />,
+            },
+
+            {
+              path: "profile",
+
+              element:
+                <ProtectedRoute allowedRoles={["USER"]}>
+                  <UserProfile />
+                </ProtectedRoute>,
+            },
+
+          ],
+        },
+
+        // =================================================
+        // AUTHOR
+        // =================================================
+
+        {
+          path: "author-dashboard",
 
           element:
             <ProtectedRoute allowedRoles={["AUTHOR"]}>
-              <AuthorProfile />
+              <AuthorDashboard />
             </ProtectedRoute>,
 
           children: [
@@ -86,22 +120,60 @@ function App() {
             },
 
             {
-              path: "articles",
-              element: <AuthorArticles />,
-            },
-
-            {
               path: "write-article",
-              element: <WriteArticle />,
+
+              element:
+                <ProtectedRoute allowedRoles={["AUTHOR"]}>
+                  <WriteArticle />
+                </ProtectedRoute>,
             },
 
             {
               path: "profile",
-              element: <AuthorAccountProfile />,
+
+              element:
+                <ProtectedRoute allowedRoles={["AUTHOR"]}>
+                  <AuthorProfile />
+                </ProtectedRoute>,
             },
 
           ],
         },
+
+        // =================================================
+        // ADMIN
+        // =================================================
+
+{
+  path: "admin-dashboard",
+
+  element:
+    <ProtectedRoute allowedRoles={["ADMIN"]}>
+      <AdminDashboard />
+    </ProtectedRoute>,
+
+  children: [
+
+    {
+      index: true,
+      element: <AdminHome />,
+    },
+
+    {
+      path: "profile",
+
+      element:
+        <ProtectedRoute allowedRoles={["ADMIN"]}>
+          <AdminProfile />
+        </ProtectedRoute>,
+    },
+
+  ],
+},
+
+        // =================================================
+        // ARTICLES
+        // =================================================
 
         {
           path: "article/:id",
@@ -109,9 +181,17 @@ function App() {
         },
 
         {
-          path: "edit-article",
-          element: <EditArticle />,
+          path: "edit-article/:id",
+
+          element:
+            <ProtectedRoute allowedRoles={["AUTHOR"]}>
+              <EditArticle />
+            </ProtectedRoute>,
         },
+
+        // =================================================
+        // ERROR
+        // =================================================
 
         {
           path: "unauthorized",

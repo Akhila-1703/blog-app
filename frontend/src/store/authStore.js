@@ -1,91 +1,160 @@
 import axios from "axios";
+
 import { create } from "zustand";
+
 import API_BASE_URL from "../config/apiConfig";
 
 export const useAuth = create((set) => ({
+
+  // ============================================
+  // STATES
+  // ============================================
+
   currentUser: null,
+
   articles: [],
+
   loading: false,
+
   isAuthenticated: false,
+
   error: null,
 
-  login: async (userCredWithRole) => {
-    const { role, ...userCredObj } = userCredWithRole;
+  // ============================================
+  // LOGIN
+  // ============================================
+
+  login: async (userCredObj) => {
 
     try {
-      set({ loading: true, error: null });
+
+      set({
+        loading: true,
+        error: null,
+      });
 
       const res = await axios.post(
         `${API_BASE_URL}/common-api/login`,
         userCredObj,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
 
       set({
-        loading: false,
-        isAuthenticated: true,
         currentUser: res.data.payload,
+        isAuthenticated: true,
+        loading: false,
+        error: null,
       });
 
+      return true;
+
     } catch (err) {
+
       set({
-        loading: false,
-        error: err.response?.data?.error || "Login failed",
-        isAuthenticated: false,
         currentUser: null,
+        isAuthenticated: false,
+        loading: false,
+        error:
+          err.response?.data?.message ||
+          "Login failed",
       });
+
+      return false;
     }
   },
 
+  // ============================================
+  // LOGOUT
+  // ============================================
+
   logout: async () => {
+
     try {
-      set({ loading: true, error: null });
+
+      set({
+        loading: true,
+        error: null,
+      });
 
       await axios.get(
         `${API_BASE_URL}/common-api/logout`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+        }
       );
 
-      set({
-        loading: false,
-        isAuthenticated: false,
-        currentUser: null,
-      });
-
     } catch (err) {
-      set({
-        loading: false,
-        isAuthenticated: false,
-        currentUser: null,
-      });
+
+      console.log(err);
     }
+
+    // ALWAYS CLEAR STATE
+    set({
+      currentUser: null,
+      isAuthenticated: false,
+      loading: false,
+      error: null,
+    });
   },
 
-  checkAuth: async () => {
-    try {
-      set({ loading: true });
-      const res = await axios.get(`${API_BASE_URL}/common-api/check-auth`, { withCredentials: true });
+  // ============================================
+  // CHECK AUTH
+  // ============================================
 
+  checkAuth: async () => {
+
+    try {
+
+      set({
+        loading: true,
+      });
+
+      const res = await axios.get(
+        `${API_BASE_URL}/common-api/check-auth`,
+        {
+          withCredentials: true,
+        }
+      );
+
+      // AUTHENTICATED
       if (res.data.payload) {
+
         set({
           currentUser: res.data.payload,
           isAuthenticated: true,
           loading: false,
+          error: null,
         });
-      } else {
+
+      }
+
+      // NOT AUTHENTICATED
+      else {
+
         set({
           currentUser: null,
           isAuthenticated: false,
           loading: false,
+          error: null,
         });
       }
+
     } catch (err) {
-      console.error("Auth check failed:", err);
+
+      console.log(
+        "Auth check failed:",
+        err
+      );
+
       set({
         currentUser: null,
         isAuthenticated: false,
         loading: false,
+        error: null,
       });
     }
-  }
+  },
+
 }));

@@ -1,12 +1,4 @@
-import React, { useEffect, useState } from "react";
-
-import axios from "axios";
-
-import toast from "react-hot-toast";
-
 import { useAuth } from "../store/authStore";
-
-import API_BASE_URL from "../config/apiConfig";
 
 import {
   pageWrapper,
@@ -17,7 +9,15 @@ import {
   errorClass,
 } from "../styles/common";
 
-function AuthorAccountProfile() {
+import React, { useState } from "react";
+
+import axios from "axios";
+
+import toast from "react-hot-toast";
+
+import API_BASE_URL from "../config/apiConfig";
+
+function AdminProfile() {
 
   const currentUser = useAuth(
     (state) => state.currentUser
@@ -36,47 +36,9 @@ function AuthorAccountProfile() {
 
   const [error, setError] = useState("");
 
-  const [stats, setStats] = useState({
-    totalArticles: 0,
-    activeArticles: 0,
-    totalReaders: 0,
-  });
-
-  useEffect(() => {
-
-    const getAuthorStats = async () => {
-
-      try {
-
-        const res = await axios.get(
-          `${API_BASE_URL}/author-api/articles`,
-          {
-            withCredentials: true,
-          }
-        );
-
-        const articles = res.data.payload || [];
-
-        const activeArticles =
-          articles.filter(
-            (article) => article.isArticleActive
-          ).length;
-
-        setStats({
-          totalArticles: articles.length,
-          activeArticles,
-          totalReaders: articles.length * 12,
-        });
-
-      } catch (err) {
-
-        console.log(err);
-      }
-    };
-
-    getAuthorStats();
-
-  }, []);
+  // ============================================
+  // HANDLE INPUT CHANGE
+  // ============================================
 
   const handleChange = (e) => {
 
@@ -85,6 +47,10 @@ function AuthorAccountProfile() {
       [e.target.name]: e.target.value,
     });
   };
+
+  // ============================================
+  // CHANGE PASSWORD
+  // ============================================
 
   const handlePasswordChange = async (e) => {
 
@@ -102,7 +68,9 @@ function AuthorAccountProfile() {
       );
     }
 
-    if (passwordData.newPassword.length < 6) {
+    if (
+      passwordData.newPassword.length < 6
+    ) {
 
       return setError(
         "Password must contain at least 6 characters"
@@ -161,7 +129,7 @@ function AuthorAccountProfile() {
         </p>
 
         <h1 className="text-3xl font-bold tracking-tight text-black">
-          Author Profile
+          Admin Profile
         </h1>
 
       </div>
@@ -206,47 +174,6 @@ function AuthorAccountProfile() {
             </div>
 
           </div>
-
-        </div>
-
-      </div>
-
-      {/* STATS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-6">
-
-        <div className="border border-[#ececec] rounded-3xl p-5 bg-white">
-
-          <h3 className="text-2xl font-bold text-black leading-none">
-            {stats.totalArticles}
-          </h3>
-
-          <p className="text-gray-500 mt-3 text-sm">
-            Published Articles
-          </p>
-
-        </div>
-
-        <div className="border border-[#ececec] rounded-3xl p-5 bg-white">
-
-          <h3 className="text-2xl font-bold text-black leading-none">
-            {stats.totalReaders}
-          </h3>
-
-          <p className="text-gray-500 mt-3 text-sm">
-            Total Readers
-          </p>
-
-        </div>
-
-        <div className="border border-[#ececec] rounded-3xl p-5 bg-white">
-
-          <h3 className="text-2xl font-bold text-black leading-none">
-            {stats.activeArticles}
-          </h3>
-
-          <p className="text-gray-500 mt-3 text-sm">
-            Active Articles
-          </p>
 
         </div>
 
@@ -389,4 +316,4 @@ function AuthorAccountProfile() {
   );
 }
 
-export default AuthorAccountProfile;
+export default AdminProfile;
