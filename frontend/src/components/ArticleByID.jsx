@@ -4,193 +4,435 @@ import axios from "axios";
 import { useAuth } from "../store/authStore";
 import { toast } from "react-hot-toast";
 import API_BASE_URL from "../config/apiConfig";
+
 import {
   articlePageWrapper,
-  articleHeader,
-  articleCategory,
-  articleMainTitle,
-  articleAuthorRow,
-  authorInfo,
-  articleContent,
+  loadingClass,
+  errorClass,
   articleFooter,
   articleActions,
   editBtn,
   deleteBtn,
-  loadingClass,
-  errorClass,
-  commentForm,
-  commentInput,
-  commentAuthor,
+
+  // NEW ADVANCED STYLES
+  articleHeroSection,
+  articleHeroCategory,
+  articleHeroTitle,
+  articleHeroDescription,
+  articleMetaRow,
+  articleAuthorCard,
+  articleAuthorImage,
+  articleContentWrapper,
+  articleContentText,
+  articleBottomActions,
+
+  modernCommentCard,
+  modernCommentInput,
+  modernCommentButton,
+  articleEmptyComments,
+
+  commentSection,
   commentHeader,
   commentList,
-  commentItem,
-  commentSubmitBtn,
-  commentSection,
+  commentAuthor,
   commentText,
 } from "../styles/common.js";
 
 function ArticleByID() {
+
   const { id } = useParams();
+
   const location = useLocation();
+
   const navigate = useNavigate();
 
-  const user = useAuth((state) => state.currentUser);
+  const user = useAuth(
+    (state) => state.currentUser
+  );
 
-  const [article, setArticle] = useState(location.state || { comments: [] });
+  const [article, setArticle] = useState(
+    location.state || { comments: [] }
+  );
+
   const [loading, setLoading] = useState(false);
+
   const [error, setError] = useState(null);
-  const [newComment, setNewComment] = useState("");
+
+  const [newComment, setNewComment] =
+    useState("");
 
   useEffect(() => {
-    if (article && article._id) return; // already loaded from location.state
+
+    if (article && article._id) return;
 
     const getArticle = async () => {
-      setLoading(true);
-      try {
-        const res = await axios.get(`${API_BASE_URL}/user-api/article/${id}`, {
-          withCredentials: true,
-        });
 
-        // populate comments array safely
+      setLoading(true);
+
+      try {
+
+        const res = await axios.get(
+          `${API_BASE_URL}/user-api/article/${id}`,
+          {
+            withCredentials: true,
+          }
+        );
+
         setArticle({
           ...res.data.payload,
-          comments: res.data.payload.comments || [],
+          comments:
+            res.data.payload.comments || [],
         });
+
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to fetch article");
+
+        setError(
+          err.response?.data?.message ||
+          "Failed to fetch article"
+        );
+
       } finally {
+
         setLoading(false);
       }
     };
 
     getArticle();
+
   }, [id]);
 
   const formatDate = (date) =>
-    new Date(date).toLocaleString("en-IN", {
-      timeZone: "Asia/Kolkata",
-      dateStyle: "medium",
-      timeStyle: "short",
+    new Date(date).toLocaleString(
+      "en-IN",
+      {
+        timeZone: "Asia/Kolkata",
+        dateStyle: "medium",
+        timeStyle: "short",
+      }
+    );
+
+  // AUTHOR ACTIONS
+  const toggleArticleStatus =
+    async () => {
+
+      const newStatus =
+        !article.isArticleActive;
+
+      if (
+        !window.confirm(
+          newStatus
+            ? "Restore this article?"
+            : "Delete this article?"
+        )
+      )
+        return;
+
+      try {
+
+        const res = await axios.patch(
+          `${API_BASE_URL}/author-api/articles/${id}/status`,
+          {
+            isArticleActive: newStatus,
+          },
+          {
+            withCredentials: true,
+          }
+        );
+
+        setArticle(res.data.payload);
+
+        toast.success(res.data.message);
+
+      } catch (err) {
+
+        toast.error(
+          err.response?.data?.message ||
+          "Operation failed"
+        );
+      }
+    };
+
+  const editArticle = (
+    articleObj
+  ) => {
+
+    navigate("/edit-article", {
+      state: articleObj,
     });
-
-  // AUTHOR actions
-  const toggleArticleStatus = async () => {
-    const newStatus = !article.isArticleActive;
-    if (!window.confirm(newStatus ? "Restore this article?" : "Delete this article?")) return;
-
-    try {
-      const res = await axios.patch(
-        `${API_BASE_URL}/author-api/articles/${id}/status`,
-        { isArticleActive: newStatus },
-        { withCredentials: true }
-      );
-
-      setArticle(res.data.payload);
-      toast.success(res.data.message);
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Operation failed");
-    }
   };
 
-  const editArticle = (articleObj) => {
-    navigate("/edit-article", { state: articleObj });
-  };
+  // USER COMMENT
+  const submitComment =
+    async (e) => {
 
-  // USER: add comment
-  const submitComment = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
+      e.preventDefault();
 
-    try {
-      const res = await axios.put(
-        `${API_BASE_URL}/user-api/articles`,
-        { articleId: article._id, comment: newComment, user: user.userId },
-        { withCredentials: true }
-      );
+      if (!newComment.trim()) return;
 
-      setArticle((prev) => ({
-        ...prev,
-        comments: res.data.payload.comments || [],
-      }));
+      try {
 
-      setNewComment("");
-      toast.success("Comment added!");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to add comment");
-    }
-  };
+        const res = await axios.put(
+          `${API_BASE_URL}/user-api/articles`,
+          {
+            articleId: article._id,
+            comment: newComment,
+            user: user.userId,
+          },
+          {
+            withCredentials: true,
+          }
+        );
 
-  if (loading) return <p className={loadingClass}>Loading article...</p>;
-  if (error) return <p className={errorClass}>{error}</p>;
+        setArticle((prev) => ({
+          ...prev,
+          comments:
+            res.data.payload.comments ||
+            [],
+        }));
+
+        setNewComment("");
+
+        toast.success("Comment added!");
+
+      } catch (err) {
+
+        toast.error(
+          err.response?.data?.message ||
+          "Failed to add comment"
+        );
+      }
+    };
+
+  if (loading) {
+
+    return (
+      <p className={loadingClass}>
+        Loading article...
+      </p>
+    );
+  }
+
+  if (error) {
+
+    return (
+      <p className={errorClass}>
+        {error}
+      </p>
+    );
+  }
+
   if (!article) return null;
 
   return (
+
     <div className={articlePageWrapper}>
-      {/* Header */}
-      <div className={articleHeader}>
-        <span className={articleCategory}>{article.category}</span>
-        <h1 className={`${articleMainTitle} uppercase`}>{article.title}</h1>
-        <div className={articleAuthorRow}>
-          <div className={authorInfo}>✍️ {article.author?.firstName || "Author"}</div>
-          <div>{formatDate(article.createdAt)}</div>
+
+      {/* HERO SECTION */}
+      <div className={articleHeroSection}>
+
+        <div className={articleHeroCategory}>
+          {article.category}
         </div>
+
+        <h1 className={articleHeroTitle}>
+          {article.title}
+        </h1>
+
+        <p className={articleHeroDescription}>
+          Read this article shared by our
+          community author and explore
+          insights, ideas, and knowledge.
+        </p>
+
+        {/* META */}
+        <div className={articleMetaRow}>
+
+          <div className={articleAuthorCard}>
+
+            <img
+              src={
+                article.author
+                  ?.profileImageUrl ||
+                "https://via.placeholder.com/100"
+              }
+              alt="author"
+              className={articleAuthorImage}
+            />
+
+            <div className="flex flex-col items-start">
+
+              <span className="text-sm font-semibold text-black">
+                {article.author
+                  ?.firstName || "Author"}
+              </span>
+
+              <span className="text-xs text-gray-500">
+                Blog Author
+              </span>
+
+            </div>
+
+          </div>
+
+          <div>
+            {formatDate(
+              article.createdAt
+            )}
+          </div>
+
+        </div>
+
       </div>
 
-      {/* Content */}
-      <div className={articleContent}>{article.content}</div>
+      {/* CONTENT */}
+      <div className={articleContentWrapper}>
 
-      {/* AUTHOR actions */}
-      {user?.role === "AUTHOR" && (
-        <div className={articleActions}>
-          <button className={editBtn} onClick={() => editArticle(article)}>
-            Edit
-          </button>
-          <button className={deleteBtn} onClick={toggleArticleStatus}>
-            {article.isArticleActive ? "Delete" : "Restore"}
-          </button>
+        <div className={articleContentText}>
+          {article.content}
         </div>
-      )}
+
+        {/* AUTHOR ACTIONS */}
+        {user?.role === "AUTHOR" && (
+
+          <div className={articleBottomActions}>
+
+            <button
+              className={editBtn}
+              onClick={() =>
+                editArticle(article)
+              }
+            >
+              Edit Article
+            </button>
+
+            <button
+              className={deleteBtn}
+              onClick={
+                toggleArticleStatus
+              }
+            >
+              {article.isArticleActive
+                ? "Delete Article"
+                : "Restore Article"}
+            </button>
+
+          </div>
+
+        )}
+
+      </div>
 
       {/* COMMENTS */}
       <div className={commentSection}>
-        <h3 className={commentHeader}>Comments ({article.comments?.length || 0})</h3>
+
+        <h3 className={commentHeader}>
+          Comments (
+          {article.comments?.length || 0}
+          )
+        </h3>
+
+        {/* COMMENT LIST */}
         <div className={commentList}>
-          {article.comments?.map((c) => (
-            <div key={c._id} className={commentItem}>
-              <span className={commentAuthor}>{c.user?.firstName || "User"}:</span>
-              <span className={commentText}>{c.comment}</span>
+
+          {article.comments?.length >
+          0 ? (
+
+            article.comments.map((c) => (
+
+              <div
+                key={c._id}
+                className={modernCommentCard}
+              >
+
+                <div className="flex items-center justify-between mb-2">
+
+                  <span
+                    className={
+                      commentAuthor
+                    }
+                  >
+                    {c.user
+                      ?.firstName ||
+                      "User"}
+                  </span>
+
+                  <span className="text-xs text-gray-400">
+                    {formatDate(
+                      c.createdAt
+                    )}
+                  </span>
+
+                </div>
+
+                <p className={commentText}>
+                  {c.comment}
+                </p>
+
+              </div>
+
+            ))
+
+          ) : (
+
+            <div
+              className={
+                articleEmptyComments
+              }
+            >
+              No comments yet.
             </div>
-          ))}
+
+          )}
+
         </div>
 
-        {/* USER add comment */}
+        {/* ADD COMMENT */}
         {user?.role === "USER" && (
-          <form className={commentForm} onSubmit={submitComment}>
-            <input
-              type="text"
-              placeholder="Write a comment..."
-              className={commentInput}
+
+          <form
+            onSubmit={submitComment}
+            className="mt-6"
+          >
+
+            <textarea
+              rows="4"
+              placeholder="Write your thoughts about this article..."
+              className={
+                modernCommentInput
+              }
               value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
+              onChange={(e) =>
+                setNewComment(
+                  e.target.value
+                )
+              }
             />
-            <button type="submit" className={commentSubmitBtn}>
-              Submit
+
+            <button
+              type="submit"
+              className={
+                modernCommentButton
+              }
+            >
+              Submit Comment
             </button>
+
           </form>
+
         )}
+
       </div>
 
-      {/* Footer */}
-      <div className={articleFooter}>Last updated: {formatDate(article.updatedAt)}</div>
+      {/* FOOTER */}
+      <div className={articleFooter}>
+
+        Last updated:{" "}
+        {formatDate(article.updatedAt)}
+
+      </div>
+
     </div>
   );
 }
 
 export default ArticleByID;
-
-// {
-//   "user":"6989799b7013502767d3f82b",
-//   "articleId":"6989750220ce5bf826ec4f7e",
-//   "comment":"good article"
-
-// }
