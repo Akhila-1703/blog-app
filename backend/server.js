@@ -29,6 +29,10 @@ app.use(exp.json())
 app.use(cookieParser())
 
 // connect APIs
+app.get('/', (req, res) => {
+  res.send("Blog App API is running...");
+});
+
 app.use('/user-api', userRoute)
 
 app.use('/admin-api', adminRoute)
