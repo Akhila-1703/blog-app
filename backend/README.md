@@ -25,23 +25,38 @@ This backend operates on a robust, highly modular **Node.js/Express** foundation
 
 ---
 
-## 📦 2. Complete Technology Stack & Dependencies
-
-| Package | Version | Technical Implementation Details |
-| :--- | :--- | :--- |
-| `express` | `^5.2.1` | Core router. Uses `express.json()` body parser and nested `express.Router()` modules. |
-| `mongoose` | `^9.1.5` | ODM. Utilizes strict schemas, custom regex validators, and index creation (`email`, `author`). |
-| `dotenv` | `^17.2.3` | Injected at line 1 of `server.js` to guarantee environment variables are available instantly. |
-| `jsonwebtoken` | `^9.0.3` | Generates HS256 signed tokens containing `_id`, `role`, and `email`. Expires in 1 hour. |
-| `bcryptjs` | `^3.0.3` | Hashes passwords asynchronously. Cost factor: 10 rounds for creation, 12 for updates. |
-| `cookie-parser` | `^1.4.7` | Parses the secure `token` cookie set during the `/login` workflow. |
-| `cors` | `^2.8.6` | Configured with `credentials: true` to allow cookies to traverse domains. |
-| `multer` | `^2.1.1` | Intercepts `multipart/form-data`. Validates MIME types (`image/jpeg`, `image/png`) and buffers up to 2MB in RAM (`memoryStorage`). |
-| `cloudinary` | `^2.9.0` | Cloud CDN. Buffers from Multer are piped directly to Cloudinary's `upload_stream` API. |
+## 📂 2. Backend Project Structure
+```text
+backend/
+├── APIs/               # Express Router modules (User, Author, Admin, Common)
+├── Models/             # Mongoose Schemas (User, Article)
+├── Middlewares/        # JWT Verification & Upload handlers (multer)
+├── Services/           # Complex business logic (authService)
+├── database/           # MongoDB connection logic (db.js)
+├── .env                # Environment variables (Sensitive)
+├── server.js           # Server entry point & global error handling
+└── package.json        # Backend dependencies & scripts
+```
 
 ---
 
-## 🗄️ 3. Entity-Relationship (ER) Data Model
+## 📦 3. Complete Technology Stack & Dependencies
+
+| Package | Version | Technical Implementation Details & Strategic Use |
+| :--- | :--- | :--- |
+| `express` | `^5.2.1` | Core router. Uses `express.json()` body parser and nested `express.Router()` modules. Chosen for its mature ecosystem. |
+| `mongoose` | `^9.1.5` | ODM. Utilizes strict schemas, custom regex validators, and index creation (`email`, `author`). Ensures data integrity. |
+| `jsonwebtoken`| `^9.0.3` | Generates HS256 signed tokens containing `_id`, `role`, and `email`. Expires in 1 hour. |
+| `bcryptjs` | `^3.0.3` | Hashes passwords asynchronously. Cost factor: 10 rounds for creation, 12 for updates. |
+| `cookie-parser`| `^1.4.7` | Parses the secure `token` cookie set during the `/login` workflow, keeping JWTs out of JS reach. |
+| `cors` | `^2.8.6` | Configured with `credentials: true` to allow cookies to traverse domains securely. |
+| `multer` | `^2.1.1` | Intercepts `multipart/form-data`. Validates MIME types and buffers up to 2MB in RAM (`memoryStorage`). |
+| `cloudinary` | `^2.9.0` | Cloud CDN. Buffers from Multer are piped directly to Cloudinary's `upload_stream` API for persistent storage. |
+| `dotenv` | `^17.2.3` | Injected at line 1 of `server.js` to guarantee environment variables are available instantly. |
+
+---
+
+## 🗄️ 4. Entity-Relationship (ER) Data Model
 
 ```mermaid
 erDiagram
@@ -79,7 +94,7 @@ erDiagram
 
 ---
 
-## 🌐 4. API Reference & Contracts
+## 🌐 5. API Reference & Contracts
 
 ### 🟢 Common API (`/common-api`)
 *Universal Authentication flows.*
@@ -91,24 +106,7 @@ erDiagram
 | `PUT` | `/change-password`| ANY | Updates password for authenticated user. |
 | `GET` | `/check-auth` | None | Returns decoded JWT payload if cookie is valid. |
 
-**Example: `/login` Response Payload**
-```json
-{
-  "message": "Login Success",
-  "payload": {
-    "_id": "64f1a2b3c4d5e6f7a8b9c0d1",
-    "firstName": "John",
-    "email": "john@example.com",
-    "role": "AUTHOR",
-    "isActive": true
-  }
-}
-// Note: Password field is stripped via backend .toObject() manipulation.
-```
-
 ### 🔵 User API (`/user-api`)
-*Consumer workflows.*
-
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/users` | None | Registers a standard USER. Uses `multipart/form-data` for image. |
@@ -117,8 +115,6 @@ erDiagram
 | `PUT` | `/articles` | USER | Appends a comment subdocument to an article. |
 
 ### 🟠 Author API (`/author-api`)
-*Content creation workflows.*
-
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
 | `POST` | `/users` | None | Registers an AUTHOR. Uses `multipart/form-data`. |
@@ -128,29 +124,25 @@ erDiagram
 | `PATCH`| `/articles/:id/status`| AUTHOR | Toggles `isArticleActive`. Validates ownership. |
 
 ### 🔴 Admin API (`/admin-api`)
-*Platform moderation workflows.*
-
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/articles` | ADMIN | Fetches **all** articles (active and inactive). |
-| `PUT` | `/block-user` | ADMIN | Sets target user's `isActive: false`. Cannot block self. |
+| `PUT` | `/block-user` | ADMIN | Sets target user's `isActive: false`. |
 | `PUT` | `/unblock-user` | ADMIN | Sets target user's `isActive: true`. |
 | `PUT` | `/article-status` | ADMIN | Forcefully toggles any article's `isArticleActive` state. |
-| `GET` | `/stats` | ADMIN | Returns counts: `totalUsers`, `totalAuthors`, `activeArticles`. |
-| `GET` | `/users` | ADMIN | Returns array of all user documents (passwords stripped). |
+| `GET` | `/stats` | ADMIN | Returns system-wide usage metrics. |
 
 ---
 
-## 🔒 5. Security & Error Handling Deep Dive
+## 🔒 6. Security & Error Handling Deep Dive
 
 ### The JWT & Cookie Architecture
 We chose HTTP-Only cookies over `localStorage` to entirely eliminate XSS vulnerabilities. 
-1. Server calls `jwt.sign()` and places it in `res.cookie()`.
+1. Server calls `jwt.sign()` and places it in `res.cookie()` with `httpOnly: true`.
 2. `verifyToken` middleware reads `req.cookies.token`.
-3. If valid, the decoded payload is appended to `req.user` for downstream controllers.
+3. If valid, the decoded payload is appended to `req.user`.
 
 ### Global Error Sink
-The `server.js` file ends with an express error handler: `app.use((err, req, res, next) => {...})`.
 - **Code 11000 (MongoDB Duplicate Key):** Intercepted and transformed into a `409 Conflict`.
 - **ValidationError:** Intercepted and transformed into a `400 Bad Request` exposing exact schema violations.
 
