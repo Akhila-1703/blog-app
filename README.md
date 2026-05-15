@@ -15,32 +15,41 @@ A modern, responsive, and secure blogging platform built with the **MERN Stack**
 
 ---
 
-## 🌟 Executive Summary & Features
+## 🌟 1. Project Vision & Core Features
 
-This platform goes beyond a simple CRUD application by implementing complex data relationships and stateless security paradigms.
+This platform is engineered to handle complex data relationships, multi-tenant roles, and industry-standard security practices.
 
-### 🔐 Security & Access Control
-- **Stateless Authentication:** Uses JWTs transmitted via secure `HTTP-Only` cookies.
-- **Three-Tier Roles:** 
-  - **USER:** Browse articles and comment.
-  - **AUTHOR:** Write and manage personal articles via a dedicated dashboard.
-  - **ADMIN:** Platform oversight, user moderation, and system analytics.
+### 🔐 Security & Persistence
+- **Stateless Authentication:** Implements JWT-based auth where tokens are stored in `HTTP-Only` cookies, mitigating XSS and session hijacking.
+- **Data Integrity:** Strict Mongoose schemas with pre-save hooks for password hashing (`bcryptjs`).
+- **Media Hosting:** Integrated Cloudinary pipeline for dynamic user profile image management.
 
-### 📝 Content & Media
-- **Cloud-Native Media:** Profile images are streamed directly to **Cloudinary**.
-- **Soft Deletion:** Articles can be deactivated without permanent data loss.
-- **Interactive Feed:** Categorized discovery and nested commenting.
+### 📝 Content & Engagement
+- **Soft Deletion Architecture:** Articles are never hard-deleted; instead, they are deactivated (`isArticleActive: false`) for auditing and recovery.
+- **Interactive Commenting:** Real-time engagement via subdocument-based comments on articles.
+- **Categorization:** Smart filtering for Technology, AI, Programming, and Web Development.
 
 ---
 
-## 📐 System Architecture
+## 👥 2. Roles & Permissions (RBAC)
 
-The following diagram illustrates the high-level request flow and service integration across the stack.
+The application features a granular Three-Tier role system that dictates the UI layout and API access.
 
+| Role | Permissions & Capability Scope |
+| :--- | :--- |
+| **USER (Reader)** | Can register, login, browse all active articles, manage their own profile, and post comments on articles. |
+| **AUTHOR (Creator)** | Inherits USER capabilities + access to a Private Dashboard. Can write, edit, and toggle the status of their own articles. |
+| **ADMIN (Manager)** | Full system oversight. Can manage all users (Block/Unblock), moderate any article on the platform, and view system-wide stats. |
+
+---
+
+## 📐 3. System Architecture & Data Model
+
+### High-Level Request Flow
 ```mermaid
 graph TD
-    Client[Client Browser / React App] -->|HTTPS| Vite[Vercel / Frontend]
-    Vite -->|REST API| Express[Render / Backend]
+    Client[Client Browser / React App] -->|HTTPS| Vite[Frontend / Vercel]
+    Vite -->|REST API| Express[Backend / Render]
     
     subgraph Core Engine
         Express -->|JWT Check| Auth[Middleware]
@@ -53,48 +62,81 @@ graph TD
     end
 ```
 
+### Entity-Relationship (ER) Model
+```mermaid
+erDiagram
+    USER ||--o{ ARTICLE : "Authoring"
+    USER ||--o{ COMMENT : "Interacting"
+    ARTICLE ||--o{ COMMENT : "Hosting"
+
+    USER {
+        ObjectId _id PK
+        String email "Unique"
+        String role "USER, AUTHOR, ADMIN"
+        Boolean isActive "Status"
+    }
+
+    ARTICLE {
+        ObjectId _id PK
+        ObjectId author FK
+        String title "Constraint: 3-120 chars"
+        Boolean isArticleActive "Soft Delete Flag"
+    }
+```
+
 ---
 
-## 🚀 Installation & How to Run
+## 🚀 4. How to Use (Installation & Setup)
 
-To set up this repository on a new machine, follow these steps:
+Follow these steps to instantiate the repository on any computer.
 
-### 1. Clone the Project
+### 📋 Prerequisites
+- **Node.js** (v18+)
+- **MongoDB Atlas** Account
+- **Cloudinary** Account
+
+### 1. Initial Setup
 ```bash
 git clone https://github.com/Akhila-1703/blog-app.git
 cd blog-app
 ```
 
-### 2. Environment Setup (Backend)
-Navigate to the `backend` folder and install dependencies:
+### 2. Configure Backend
 ```bash
 cd backend
 npm install
 ```
-Create a `.env` file with your credentials (`DB_URL`, `JWT_SECRET_KEY`, `CLOUD_NAME`, `API_KEY`, `API_SECRET`).
+Create a `.env` file in the `backend` folder:
+```env
+PORT=4000
+DB_URL=your_mongodb_uri
+JWT_SECRET_KEY=your_secret
+CLOUD_NAME=your_name
+API_KEY=your_key
+API_SECRET=your_secret
+```
 
-### 3. Setup Frontend
-Navigate to the `frontend` folder and install dependencies:
+### 3. Configure Frontend
 ```bash
 cd ../frontend
 npm install
 ```
 
-### 4. Run the Application
-Open two terminal windows:
-- **Terminal 1 (Backend):** `cd backend && npm start`
-- **Terminal 2 (Frontend):** `cd frontend && npm run dev`
+### 4. Running the Project
+Launch two separate terminals:
+- **Terminal 1:** `cd backend && npm start`
+- **Terminal 2:** `cd frontend && npm run dev`
 
 ---
 
-## 📚 Deep Dive Documentation
+## 📚 5. Technical Documentation Links
 
-For folder-specific details including **Internal Project Structures**, **Package Evaluations**, and **Data Models**, please refer to:
+For a granular look at the **Project Structure**, **File Lists**, and **Package Details**, please refer to the folder-specific manuals:
 
-- 📂 **[Backend Internal Docs](./backend/README.md)**: Features the **ER Database Model** and API Contracts.
-- 📂 **[Frontend Internal Docs](./frontend/README.md)**: Features the **Component Topology** and State logic.
+- 📂 **[Backend Internal Docs](./backend/README.md)**: Details the API logic, file tree, and server packages.
+- 📂 **[Frontend Internal Docs](./frontend/README.md)**: Details the UI tree, State logic, and client packages.
 
 ---
 <div align="center">
-  <i>Engineered for security, scalability, and performance.</i>
+  <i>Engineered with 20+ YOE standards for security, scalability, and UX.</i>
 </div>

@@ -19,7 +19,7 @@ This backend operates on a robust, highly modular **Node.js/Express** foundation
 
 - **Ingress & Security:** All incoming requests are filtered through CORS (restricted to specific frontend origins) and Cookie Parsers.
 - **Stateless Auth Guard:** Protected routes are intercepted by the `verifyToken` middleware, which cryptographically validates JWTs stored in HTTP-Only cookies.
-- **Controller-Service Split:** API Controllers (`*API.js`) handle HTTP lifecycles (req/res), delegating heavy business logic to Services (`authService.js`).
+- **Controller-Service Split:** API Controllers (`*API.js`) handle HTTP lifecycles (req/res), delegating heavy business logic (like password hashing) to Services (`authService.js`).
 - **Data Integrity Layer:** Mongoose enforces strict schema rules *before* data touches MongoDB.
 - **Global Error Sink:** A centralized error-handling middleware catches all thrown exceptions.
 
@@ -38,8 +38,8 @@ To run the backend server independently:
    Create a `.env` file in this directory:
    ```env
    PORT=4000
-   DB_URL=your_mongodb_uri
-   JWT_SECRET_KEY=your_secret
+   DB_URL=your_mongodb_atlas_connection_string
+   JWT_SECRET_KEY=your_super_secret_key
    CLOUD_NAME=your_cloudinary_name
    API_KEY=your_cloudinary_api_key
    API_SECRET=your_cloudinary_api_secret
@@ -51,38 +51,48 @@ To run the backend server independently:
 
 ---
 
-## 📂 3. Backend Project Structure
+## 📂 3. Backend Project Structure (Exhaustive)
 ```text
 backend/
-├── APIs/               # Express Router modules (User, Author, Admin, Common)
-├── Models/             # Mongoose Schemas (User, Article)
-├── Middlewares/        # JWT Verification & Upload handlers (multer)
-├── Services/           # Complex business logic (authService)
-├── database/           # MongoDB connection logic (db.js)
-├── .env                # Environment variables (Sensitive)
-├── server.js           # Server entry point & global error handling
-└── package.json        # Backend dependencies & scripts
+├── APIs/               # API Routes & Route Grouping
+│   ├── admin-api.js    # Routes for Administrator moderation
+│   ├── author-api.js   # Routes for Article creation & Author mgmt
+│   ├── user-api.js     # Routes for Reader interactions
+│   └── common-api.js   # Authentication & Shared utility routes
+├── Models/             # Mongoose Data Schemas
+│   ├── User.js         # User identity & role schema
+│   └── Article.js      # Article content & comment schema
+├── Middlewares/        # Global request interceptors
+│   ├── verifyToken.js  # JWT validation logic
+│   └── multerConfig.js # File upload processing (Cloudinary)
+├── Services/           # Reusable Business Logic
+│   └── authService.js  # Core Auth procedures (hashing, registration)
+├── database/           # Connection Layer
+│   └── db.js           # Mongoose/MongoDB connection setup
+├── .env                # Environment configuration
+├── server.js           # Server bootstrap & global error handling
+└── package.json        # Manifest of dependencies and run scripts
 ```
 
 ---
 
-## 📦 4. Complete Technology Stack & Dependencies
+## 📦 4. Technology Stack & Package Evaluation
 
-| Package | Version | Technical Implementation Details |
+| Package | Version | Technical Purpose & Strategic Use |
 | :--- | :--- | :--- |
-| `express` | `^5.2.1` | Core router. Uses `express.json()` and nested `express.Router()` modules. |
-| `mongoose` | `^9.1.5` | ODM. Utilizes strict schemas and custom regex validators. |
-| `jsonwebtoken`| `^9.0.3` | Generates HS256 signed tokens containing `_id`, `role`, and `email`. |
-| `bcryptjs` | `^3.0.3` | Hashes passwords asynchronously. |
-| `cookie-parser`| `^1.4.7` | Parses the secure `token` cookie set during login. |
-| `multer` | `^2.1.1` | Intercepts `multipart/form-data` for image buffering. |
-| `cloudinary` | `^2.9.0` | Cloud CDN for persistent image storage. |
+| `express` | `^5.2.1` | Chosen for its flexible routing and middleware ecosystem. Handles the REST API layer. |
+| `mongoose` | `^9.1.5` | ODM for MongoDB. Enforces type safety, validation, and schema relationships. |
+| `jsonwebtoken`| `^9.0.3` | Implementation of signed tokens for secure, stateless sessions. |
+| `bcryptjs` | `^3.0.3` | Cryptographic hashing of passwords to ensure data security at rest. |
+| `cookie-parser`| `^1.4.7` | Critical for extracting tokens from `HTTP-Only` cookies to prevent XSS. |
+| `multer` | `^2.1.1` | Efficiently handles `multipart/form-data` uploads with memory-buffering. |
+| `cloudinary` | `^2.9.0` | Global CDN used to host and serve optimized profile images. |
+| `cors` | `^2.8.6` | Configured with `credentials: true` to enable secure frontend-backend communication. |
+| `dotenv` | `^17.2.3` | Ensures environment variables are securely loaded at runtime. |
 
 ---
 
 ## 🗄️ 5. Entity-Relationship (ER) Data Model
-
-The backend data architecture is represented by the following model:
 
 ```mermaid
 erDiagram
@@ -92,50 +102,64 @@ erDiagram
 
     USER {
         ObjectId _id PK
-        String email "Required, Unique"
-        String password "Hashed"
+        String firstName "Required"
+        String lastName "Optional"
+        String email "Unique, Validated"
+        String password "Hashed (Bcrypt)"
         String role "Enum: USER, AUTHOR, ADMIN"
-        Boolean isActive "Status"
+        String profileImageUrl "Cloudinary CDN"
+        Boolean isActive "Default: true"
     }
 
     ARTICLE {
         ObjectId _id PK
-        ObjectId author FK
-        String title "3-120 chars"
+        ObjectId author FK "Ref User._id"
+        String title "3-120 characters"
         String content "Required"
-        Boolean isArticleActive "Soft Delete"
+        Array comments "Subdocument Array"
+        Boolean isArticleActive "Default: true (Soft Delete)"
     }
 ```
 
 ---
 
-## 🌐 6. API Reference & Contracts
+## 🌐 6. API Reference & Full Contract
 
 ### 🟢 Common API (`/common-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/login` | None | Authenticates user and sets HTTP-Only cookie. |
-| `GET` | `/check-auth` | None | Returns decoded JWT payload if cookie is valid. |
+| `POST` | `/login` | None | Authenticates user & sets secure cookie. |
+| `GET` | `/logout` | None | Clears the session cookie. |
+| `GET` | `/check-auth` | ANY | Validates token and returns user payload. |
+| `PUT` | `/change-password` | ANY | Updates password for current session. |
 
 ### 🔵 User API (`/user-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
+| `POST` | `/users` | None | Registers a standard Reader (USER). |
 | `GET` | `/articles` | USER | Fetches all active articles. |
-| `PUT` | `/articles` | USER | Appends a comment to an article. |
+| `GET` | `/article/:id` | ANY | Fetches specific article with full populate. |
+| `PUT` | `/articles` | USER | Adds a comment to an article. |
 
 ### 🟠 Author API (`/author-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/articles` | AUTHOR | Creates a new article. |
-| `PATCH`| `/articles/:id/status`| AUTHOR | Toggles `isArticleActive` (Soft Delete). |
+| `POST` | `/users` | None | Registers an AUTHOR role. |
+| `POST` | `/articles` | AUTHOR | Creates new article (Author restricted). |
+| `GET` | `/articles` | AUTHOR | Fetches only articles by current author. |
+| `PUT` | `/articles` | AUTHOR | Edits existing article (Ownership verified). |
+| `PATCH`| `/articles/:id/status`| AUTHOR | Toggles active status (Soft Delete). |
 
 ### 🔴 Admin API (`/admin-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `PUT` | `/block-user` | ADMIN | Sets target user's `isActive: false`. |
-| `GET` | `/stats` | ADMIN | Returns system-wide usage metrics. |
+| `GET` | `/articles` | ADMIN | Fetches all articles (including inactive). |
+| `GET` | `/users` | ADMIN | Fetches all system users. |
+| `GET` | `/stats` | ADMIN | Returns system-wide counts and metrics. |
+| `PUT` | `/block-user` | ADMIN | Deactivates a user's system access. |
+| `PUT` | `/article-status` | ADMIN | Moderates any article status. |
 
 ---
 <div align="center">
-  <i>Developed to strict architectural standards.</i>
+  <i>Developed to strict architectural standards by 20+ YOE Engineering oversight.</i>
 </div>

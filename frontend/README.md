@@ -33,16 +33,17 @@ graph TD
         Public --> Home[Home.jsx]
         Public --> Auth["Login/Register.jsx"]
         Public --> Article[ArticleByID.jsx]
+        Public --> Unauth[Unauthorized.jsx]
     end
 
-    subgraph ProtectedRoutes ["Protected Routes"]
-        Protected -->|"Role: USER"| UserDash[UserDashboard.jsx]
-        Protected -->|"Role: AUTHOR"| AuthorDash[AuthorDashboard.jsx]
-        Protected -->|"Role: ADMIN"| AdminDash[AdminDashboard.jsx]
+    subgraph ProtectedRoutes ["Dashboard Layouts"]
+        Protected -->|"USER"| UserDash[UserDashboard.jsx]
+        Protected -->|"AUTHOR"| AuthorDash[AuthorDashboard.jsx]
+        Protected -->|"ADMIN"| AdminDash[AdminDashboard.jsx]
     end
 
-    Header -.->|"Reads state"| Zustand[("Zustand authStore")]
-    Protected -.->|"Verifies Role"| Zustand
+    Header -.->|"Reads session"| Zustand[("Zustand authStore")]
+    Protected -.->|"Validates Role"| Zustand
 ```
 
 ---
@@ -56,56 +57,71 @@ To run the frontend client independently:
    cd frontend
    npm install
    ```
-2. **Environment Configuration**:
-   The frontend automatically detects the API base URL based on the environment. For local development, ensure your backend is running on `http://localhost:4000`.
+2. **Development**:
+   The frontend expects the backend API at `http://localhost:4000`. Ensure the backend is active before proceeding.
 3. **Start the Development Server**:
    ```bash
    npm run dev
+   # Client will launch on http://localhost:5173
    ```
 
 ---
 
-## 📂 3. Frontend Project Structure
+## 📂 3. Frontend Project Structure (Exhaustive)
 ```text
 frontend/
 ├── src/
-│   ├── assets/         # Static assets (images, icons)
-│   ├── components/     # UI Components (Header, Footer, Dashboards, Forms)
-│   │   ├── RootLayout.jsx      # Main layout shell
-│   │   ├── ProtectedRoute.jsx   # Role-based gatekeeper
-│   │   ├── Home.jsx             # Public landing page
-│   │   ├── Login/Register.jsx   # Authentication views
-│   │   └── ArticleByID.jsx      # Article detail & comments
-│   ├── config/         # API endpoint configurations (apiConfig.js)
-│   ├── store/          # Zustand state management (authStore.js)
-│   ├── styles/         # Tailwind CSS common utility definitions (common.js)
-│   ├── App.jsx         # Main router configuration (React Router v7)
-│   └── main.jsx        # App entry point
+│   ├── assets/         # Static images & CSS overrides
+│   ├── components/     # UI Component Library
+│   │   ├── RootLayout.jsx      # Global shell (Header/Footer wrapper)
+│   │   ├── Header.jsx          # Dynamic navbar with mobile menu
+│   │   ├── Footer.jsx          # Site footer
+│   │   ├── Home.jsx            # Landing page & stats
+│   │   ├── Login/Register.jsx  # Authentication forms
+│   │   ├── UserDashboard.jsx   # Reader dashboard hub
+│   │   ├── AuthorDashboard.jsx # Creator dashboard hub
+│   │   ├── AdminDashboard.jsx  # Moderator dashboard hub
+│   │   ├── ProtectedRoute.jsx  # RBAC Security Component
+│   │   ├── ArticleByID.jsx     # Full article view & comments
+│   │   └── ...                 # Feature-specific pages (Edit, Write, Profile)
+│   ├── config/         # Environment variables
+│   │   └── apiConfig.js # Dynamic API endpoint routing
+│   ├── store/          # Global State Management
+│   │   └── authStore.js # Zustand Auth/User store
+│   ├── styles/         # CSS & Style utilities
+│   │   └── common.js   # Centralized Tailwind class definitions
+│   ├── App.jsx         # React Router v7 configuration
+│   └── main.jsx        # App entry point (Virtual DOM mount)
 ├── package.json        # Frontend dependencies & scripts
-└── vite.config.js      # Vite build configuration
+└── vite.config.js      # Vite build pipeline & Tailwind plugin mount
 ```
 
 ---
 
-## 📦 4. Complete Technology Stack & Dependencies
+## 📦 4. Technology Stack & Dependencies
 
-| Package | Version | Purpose & Strategic Use |
+| Package | Version | Technical Rationale |
 | :--- | :--- | :--- |
-| `react` | `^19.2.0` | Latest React engine with concurrent rendering. |
-| `vite` | `^7.3.1` | Build tool replacing CRA for faster development. |
-| `tailwindcss` | `^4.2.1` | Utility-first styling with responsive design support. |
-| `react-router` | `^7.13.1` | Modern routing with layout outlets and loaders. |
-| `zustand` | `^5.0.11` | Lightweight, hook-based state management. |
-| `axios` | `^1.13.6` | HTTP client configured with `withCredentials: true`. |
-| `react-hook-form`| `^7.71.2` | High-performance form handling with validation. |
+| `react` | `^19.2.0` | Utilizes latest rendering patterns and hook-based lifecycle. |
+| `vite` | `^7.3.1` | Chosen for superior HMR (Hot Module Replacement) and build speed. |
+| `tailwindcss` | `^4.2.1` | Next-gen utility styling for consistent, responsive UI across screens. |
+| `react-router` | `^7.13.1` | Industry standard for SPAs; handles protected nested layouts efficiently. |
+| `zustand` | `^5.0.11` | Minimal state container. Used for high-performance session hydration. |
+| `axios` | `^1.13.6` | Configured with `withCredentials` to handle secure HTTP-Only cookies. |
+| `react-hook-form`| `^7.71.2` | Manages form state with zero re-renders on the main thread. |
+| `react-hot-toast`| `^2.6.0` | Elegant, non-blocking UI notifications for user actions. |
 
 ---
 
-## 🛡️ 5. Role-Based Route Guarding
+## 🛡️ 5. Security & State Deep Dive
 
-The `<ProtectedRoute />` component is a Higher Order Component (HOC) that wraps sensitive dashboard routes. It extracts the `allowedRoles` array and compares it with the current user's role from the Zustand store, redirecting unauthorized access attempts instantly.
+### State Hydration (`checkAuth`)
+Upon every refresh, the app calls the backend to verify the presence of a secure JWT cookie. If present, the `authStore` is hydrated with the user payload, ensuring a persistent login state without insecurely storing tokens in `localStorage`.
+
+### Protected Layout Architecture
+The `<ProtectedRoute />` is a gatekeeper HOC. It evaluates the user's role stored in Zustand against an `allowedRoles` array. If the user doesn't match, they are redirected instantly to the login or unauthorized page, preventing UI flicker of sensitive information.
 
 ---
 <div align="center">
-  <i>Developed for maximum performance and UX.</i>
+  <i>Developed for maximum performance and UX by 20+ YOE Engineering oversight.</i>
 </div>
