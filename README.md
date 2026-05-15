@@ -62,27 +62,6 @@ graph TD
     end
 ```
 
-### Entity-Relationship (ER) Model
-```mermaid
-erDiagram
-    USER ||--o{ ARTICLE : "Authoring"
-    USER ||--o{ COMMENT : "Interacting"
-    ARTICLE ||--o{ COMMENT : "Hosting"
-
-    USER {
-        ObjectId _id PK
-        String email "Unique"
-        String role "USER, AUTHOR, ADMIN"
-        Boolean isActive "Status"
-    }
-
-    ARTICLE {
-        ObjectId _id PK
-        ObjectId author FK
-        String title "Constraint: 3-120 chars"
-        Boolean isArticleActive "Soft Delete Flag"
-    }
-```
 
 ---
 
