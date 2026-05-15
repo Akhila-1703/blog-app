@@ -19,13 +19,39 @@ This backend operates on a robust, highly modular **Node.js/Express** foundation
 
 - **Ingress & Security:** All incoming requests are filtered through CORS (restricted to specific frontend origins) and Cookie Parsers.
 - **Stateless Auth Guard:** Protected routes are intercepted by the `verifyToken` middleware, which cryptographically validates JWTs stored in HTTP-Only cookies.
-- **Controller-Service Split:** API Controllers (`*API.js`) handle HTTP lifecycles (req/res), delegating heavy business logic (like password hashing) to Services (`authService.js`).
+- **Controller-Service Split:** API Controllers (`*API.js`) handle HTTP lifecycles (req/res), delegating heavy business logic to Services (`authService.js`).
 - **Data Integrity Layer:** Mongoose enforces strict schema rules *before* data touches MongoDB.
-- **Global Error Sink:** A centralized error-handling middleware catches all thrown exceptions, formatting Mongoose Validation/Cast errors into predictable, client-friendly JSON responses.
+- **Global Error Sink:** A centralized error-handling middleware catches all thrown exceptions.
 
 ---
 
-## 📂 2. Backend Project Structure
+## 🚀 2. Local Installation & Setup
+
+To run the backend server independently:
+
+1. **Install Dependencies**:
+   ```bash
+   cd backend
+   npm install
+   ```
+2. **Environment Configuration**:
+   Create a `.env` file in this directory:
+   ```env
+   PORT=4000
+   DB_URL=your_mongodb_uri
+   JWT_SECRET_KEY=your_secret
+   CLOUD_NAME=your_cloudinary_name
+   API_KEY=your_cloudinary_api_key
+   API_SECRET=your_cloudinary_api_secret
+   ```
+3. **Start the Server**:
+   ```bash
+   npm start
+   ```
+
+---
+
+## 📂 3. Backend Project Structure
 ```text
 backend/
 ├── APIs/               # Express Router modules (User, Author, Admin, Common)
@@ -40,23 +66,23 @@ backend/
 
 ---
 
-## 📦 3. Complete Technology Stack & Dependencies
+## 📦 4. Complete Technology Stack & Dependencies
 
-| Package | Version | Technical Implementation Details & Strategic Use |
+| Package | Version | Technical Implementation Details |
 | :--- | :--- | :--- |
-| `express` | `^5.2.1` | Core router. Uses `express.json()` body parser and nested `express.Router()` modules. Chosen for its mature ecosystem. |
-| `mongoose` | `^9.1.5` | ODM. Utilizes strict schemas, custom regex validators, and index creation (`email`, `author`). Ensures data integrity. |
-| `jsonwebtoken`| `^9.0.3` | Generates HS256 signed tokens containing `_id`, `role`, and `email`. Expires in 1 hour. |
-| `bcryptjs` | `^3.0.3` | Hashes passwords asynchronously. Cost factor: 10 rounds for creation, 12 for updates. |
-| `cookie-parser`| `^1.4.7` | Parses the secure `token` cookie set during the `/login` workflow, keeping JWTs out of JS reach. |
-| `cors` | `^2.8.6` | Configured with `credentials: true` to allow cookies to traverse domains securely. |
-| `multer` | `^2.1.1` | Intercepts `multipart/form-data`. Validates MIME types and buffers up to 2MB in RAM (`memoryStorage`). |
-| `cloudinary` | `^2.9.0` | Cloud CDN. Buffers from Multer are piped directly to Cloudinary's `upload_stream` API for persistent storage. |
-| `dotenv` | `^17.2.3` | Injected at line 1 of `server.js` to guarantee environment variables are available instantly. |
+| `express` | `^5.2.1` | Core router. Uses `express.json()` and nested `express.Router()` modules. |
+| `mongoose` | `^9.1.5` | ODM. Utilizes strict schemas and custom regex validators. |
+| `jsonwebtoken`| `^9.0.3` | Generates HS256 signed tokens containing `_id`, `role`, and `email`. |
+| `bcryptjs` | `^3.0.3` | Hashes passwords asynchronously. |
+| `cookie-parser`| `^1.4.7` | Parses the secure `token` cookie set during login. |
+| `multer` | `^2.1.1` | Intercepts `multipart/form-data` for image buffering. |
+| `cloudinary` | `^2.9.0` | Cloud CDN for persistent image storage. |
 
 ---
 
-## 🗄️ 4. Entity-Relationship (ER) Data Model
+## 🗄️ 5. Entity-Relationship (ER) Data Model
+
+The backend data architecture is represented by the following model:
 
 ```mermaid
 erDiagram
@@ -66,85 +92,48 @@ erDiagram
 
     USER {
         ObjectId _id PK
-        String firstName "Required, 2-30 chars"
-        String lastName "Optional"
-        String email "Required, Unique, Regex Validated"
-        String password "Required, Min 6 chars (Hashed)"
+        String email "Required, Unique"
+        String password "Hashed"
         String role "Enum: USER, AUTHOR, ADMIN"
-        Boolean isActive "Default: true"
+        Boolean isActive "Status"
     }
 
     ARTICLE {
         ObjectId _id PK
-        ObjectId author FK "Refers to User._id"
-        String title "Required, 3-120 chars"
-        String category "Enum: technology, programming, AI, web development"
-        String content "Required, 20-10000 chars"
-        Boolean isArticleActive "Default: true (Soft Delete)"
-    }
-
-    COMMENT {
-        ObjectId user FK "Refers to User._id"
-        String comment "Required, 2-500 chars"
-        Date createdAt "Timestamp"
+        ObjectId author FK
+        String title "3-120 chars"
+        String content "Required"
+        Boolean isArticleActive "Soft Delete"
     }
 ```
 
-*Note: In MongoDB, `COMMENT` is implemented as a Subdocument Array within the `ARTICLE` collection.*
-
 ---
 
-## 🌐 5. API Reference & Contracts
+## 🌐 6. API Reference & Contracts
 
 ### 🟢 Common API (`/common-api`)
-*Universal Authentication flows.*
-
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/login` | None | Authenticates user and sets HTTP-Only JWT cookie. |
-| `GET` | `/logout` | None | Instructs browser to clear the JWT cookie. |
-| `PUT` | `/change-password`| ANY | Updates password for authenticated user. |
+| `POST` | `/login` | None | Authenticates user and sets HTTP-Only cookie. |
 | `GET` | `/check-auth` | None | Returns decoded JWT payload if cookie is valid. |
 
 ### 🔵 User API (`/user-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/users` | None | Registers a standard USER. Uses `multipart/form-data` for image. |
-| `GET` | `/articles` | USER | Fetches all articles where `isArticleActive: true`. |
-| `GET` | `/article/:id` | ANY | Fetches specific article. Populates `author` and `comments.user`. |
-| `PUT` | `/articles` | USER | Appends a comment subdocument to an article. |
+| `GET` | `/articles` | USER | Fetches all active articles. |
+| `PUT` | `/articles` | USER | Appends a comment to an article. |
 
 ### 🟠 Author API (`/author-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/users` | None | Registers an AUTHOR. Uses `multipart/form-data`. |
-| `POST` | `/articles` | AUTHOR | Creates article. Sets `author` to `req.user._id`. |
-| `GET` | `/articles` | AUTHOR | Fetches articles belonging **only** to logged-in author. |
-| `PUT` | `/articles` | AUTHOR | Edits article. Validates ownership before update. |
-| `PATCH`| `/articles/:id/status`| AUTHOR | Toggles `isArticleActive`. Validates ownership. |
+| `POST` | `/articles` | AUTHOR | Creates a new article. |
+| `PATCH`| `/articles/:id/status`| AUTHOR | Toggles `isArticleActive` (Soft Delete). |
 
 ### 🔴 Admin API (`/admin-api`)
 | Method | Endpoint | Auth | Purpose |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/articles` | ADMIN | Fetches **all** articles (active and inactive). |
 | `PUT` | `/block-user` | ADMIN | Sets target user's `isActive: false`. |
-| `PUT` | `/unblock-user` | ADMIN | Sets target user's `isActive: true`. |
-| `PUT` | `/article-status` | ADMIN | Forcefully toggles any article's `isArticleActive` state. |
 | `GET` | `/stats` | ADMIN | Returns system-wide usage metrics. |
-
----
-
-## 🔒 6. Security & Error Handling Deep Dive
-
-### The JWT & Cookie Architecture
-We chose HTTP-Only cookies over `localStorage` to entirely eliminate XSS vulnerabilities. 
-1. Server calls `jwt.sign()` and places it in `res.cookie()` with `httpOnly: true`.
-2. `verifyToken` middleware reads `req.cookies.token`.
-3. If valid, the decoded payload is appended to `req.user`.
-
-### Global Error Sink
-- **Code 11000 (MongoDB Duplicate Key):** Intercepted and transformed into a `409 Conflict`.
-- **ValidationError:** Intercepted and transformed into a `400 Bad Request` exposing exact schema violations.
 
 ---
 <div align="center">

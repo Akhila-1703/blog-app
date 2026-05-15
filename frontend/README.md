@@ -33,10 +33,9 @@ graph TD
         Public --> Home[Home.jsx]
         Public --> Auth["Login/Register.jsx"]
         Public --> Article[ArticleByID.jsx]
-        Public --> Unauth[Unauthorized.jsx]
     end
 
-    subgraph ProtectedRoutes ["Protected Routes (Guarded by ProtectedRoute.jsx)"]
+    subgraph ProtectedRoutes ["Protected Routes"]
         Protected -->|"Role: USER"| UserDash[UserDashboard.jsx]
         Protected -->|"Role: AUTHOR"| AuthorDash[AuthorDashboard.jsx]
         Protected -->|"Role: ADMIN"| AdminDash[AdminDashboard.jsx]
@@ -48,7 +47,25 @@ graph TD
 
 ---
 
-## 📂 2. Frontend Project Structure
+## 🚀 2. Local Installation & Setup
+
+To run the frontend client independently:
+
+1. **Install Dependencies**:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. **Environment Configuration**:
+   The frontend automatically detects the API base URL based on the environment. For local development, ensure your backend is running on `http://localhost:4000`.
+3. **Start the Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+## 📂 3. Frontend Project Structure
 ```text
 frontend/
 ├── src/
@@ -59,7 +76,7 @@ frontend/
 │   │   ├── Home.jsx             # Public landing page
 │   │   ├── Login/Register.jsx   # Authentication views
 │   │   └── ArticleByID.jsx      # Article detail & comments
-│   ├── config/         # API endpoint configurations
+│   ├── config/         # API endpoint configurations (apiConfig.js)
 │   ├── store/          # Zustand state management (authStore.js)
 │   ├── styles/         # Tailwind CSS common utility definitions (common.js)
 │   ├── App.jsx         # Main router configuration (React Router v7)
@@ -70,43 +87,23 @@ frontend/
 
 ---
 
-## 📦 3. Complete Technology Stack & Dependencies
+## 📦 4. Complete Technology Stack & Dependencies
 
 | Package | Version | Purpose & Strategic Use |
 | :--- | :--- | :--- |
-| `react` & `dom` | `^19.2.0` | Uses modern hooks. `ErrorBoundary` wraps the router for graceful UI degradation. |
-| `vite` | `^7.3.1` | Lightning-fast build tool. Environment variables (`import.meta.env`) are used to switch API bases. |
-| `tailwindcss` | `^4.2.1` | Utility-first CSS framework. Responsive prefixes (`md:`, `lg:`) handle mobile-first design. |
-| `react-router` | `^7.13.1` | Configured using the modern `createBrowserRouter` API. Enables nested layouts. |
-| `zustand` | `^5.0.11` | Minimalistic state management. Exposes `useAuthStore` hook for session persistence. |
-| `react-hook-form`| `^7.71.2` | Uncontrolled form inputs. Handles complex validation with minimal re-renders. |
-| `axios` | `^1.13.6` | HTTP Client. Configured with `withCredentials: true` globally for secure cookie handling. |
-| `react-hot-toast`| `^2.6.0` | Provides clean, lightweight notification overlays for user feedback. |
-
----
-
-## 🧠 4. State Management (Zustand) Deep Dive
-
-Unlike Redux, Zustand provides a simplified, hook-based store. The `authStore.js` is the central brain of the client application.
-
-**The `checkAuth` Lifecycle:**
-1. Upon initial page load, `App.jsx` triggers `authStore.getState().checkAuth()`.
-2. Axios hits `/common-api/check-auth` on the backend.
-3. The backend reads the HTTP-Only cookie.
-4. If valid, Zustand hydrates `currentUser` and sets `isAuth: true`.
+| `react` | `^19.2.0` | Latest React engine with concurrent rendering. |
+| `vite` | `^7.3.1` | Build tool replacing CRA for faster development. |
+| `tailwindcss` | `^4.2.1` | Utility-first styling with responsive design support. |
+| `react-router` | `^7.13.1` | Modern routing with layout outlets and loaders. |
+| `zustand` | `^5.0.11` | Lightweight, hook-based state management. |
+| `axios` | `^1.13.6` | HTTP client configured with `withCredentials: true`. |
+| `react-hook-form`| `^7.71.2` | High-performance form handling with validation. |
 
 ---
 
 ## 🛡️ 5. Role-Based Route Guarding
 
-The `<ProtectedRoute />` component is a Higher Order Component (HOC) that wraps sensitive dashboard routes.
-
-**Logic Flow:**
-1. Extracts `allowedRoles` array passed as a prop (e.g., `["AUTHOR"]`).
-2. Reads current user role from Zustand.
-3. **If not logged in:** Redirects to `/login`.
-4. **If logged in but unauthorized:** Redirects to `/unauthorized`.
-5. **If valid:** Renders the requested route component.
+The `<ProtectedRoute />` component is a Higher Order Component (HOC) that wraps sensitive dashboard routes. It extracts the `allowedRoles` array and compares it with the current user's role from the Zustand store, redirecting unauthorized access attempts instantly.
 
 ---
 <div align="center">
