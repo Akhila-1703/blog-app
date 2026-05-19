@@ -1,150 +1,26 @@
-import exp from 'express'
-import { authenticate } from '../services/authService.js'
-import { hash, compare } from 'bcryptjs'
-import { UserTypeModel } from '../models/UserModel.js'
-import { verifyToken } from '../middlewares/verifyToken.js'
+// Import Express module to instantiate router
+import exp from "express";
+// Import token verification middleware for authorization checks
+import { verifyToken } from "../middlewares/verifyToken.js";
+// Import common session and session profile controller handlers
+import {
+  loginUser,
+  logoutUser,
+  changePassword,
+  checkAuth,
+} from "../controllers/commonController.js";
 
-export const commonRouter = exp.Router()
+// Instantiate Express router for shared endpoints
+export const commonRouter = exp.Router();
 
-//login
-commonRouter.post("/login", async (req, res, next) => {
+// Route: Authenticate user login credentials (Public endpoint)
+commonRouter.post("/login", loginUser);
 
-  try {
+// Route: De-authenticate user session and clear cookies (Public endpoint)
+commonRouter.get("/logout", logoutUser);
 
-    //get user cred obj
-    let userCred = req.body
+// Route: Change user password (Restricted to USER, AUTHOR, and ADMIN roles)
+commonRouter.put("/change-password", verifyToken("USER", "AUTHOR", "ADMIN"), changePassword);
 
-    //call authenticate
-    let { token, user } = await authenticate(userCred)
-
-    //save token
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production"
-        ? "none"
-        : "lax"
-    });
-
-
-    res.status(200).json({
-      message: "Login Success",
-      payload: user
-    });
-
-  } catch (err) {
-    next(err);
-  }
-})
-
-//logout
-commonRouter.get('/logout', async (req, res, next) => {
-
-  try {
-
-    //clear the cookie named token
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production"
-        ? "none"
-        : "lax"
-    })
-
-
-    res.status(200).json({
-      message: "Logout successful"
-    })
-
-  } catch (err) {
-    next(err);
-  }
-})
-
-//change password
-commonRouter.put(
-  '/change-password',
-  verifyToken("USER", "AUTHOR", "ADMIN"),
-  async (req, res, next) => {
-
-    try {
-
-      //get current password and new password
-      let { currentPassword, newPassword } = req.body
-
-      let user = await UserTypeModel.findOne({
-        email: req.user.email
-      })
-
-      if (!user) {
-        return res.status(404).json({
-          message: "User not found"
-        })
-      }
-
-      //check current password
-      let isMatch = await compare(currentPassword, user.password)
-
-      if (!isMatch) {
-        return res.status(401).json({
-          message: "Invalid old password"
-        })
-      }
-
-      //hash new password
-      const hashedPassword = await hash(newPassword, 12)
-
-      //update password
-      user.password = hashedPassword
-
-      await user.save()
-
-      //remove password before sending
-      let userObj = user.toObject()
-
-      delete userObj.password
-
-      //send res
-      res.json({
-        message: "Password changed successfully",
-        payload: userObj
-      })
-
-    } catch (err) {
-      next(err);
-    }
-  }
-)
-
-//Page Refresh
-commonRouter.get(
-  "/check-auth",
-  async (req, res) => {
-    try {
-      const token = req.cookies.token;
-
-      if (!token) {
-        return res.status(200).json({
-          message: "not authenticated",
-          payload: null
-        });
-      }
-
-      const decoded = await import('jsonwebtoken').then(jwt => 
-        jwt.default.verify(token, process.env.JWT_SECRET)
-      );
-
-      res.status(200).json({
-        message: "authenticated",
-        payload: decoded
-      });
-
-    } catch (err) {
-      res.status(200).json({
-        message: "not authenticated",
-        payload: null
-      });
-    }
-  }
-)
-
+// Route: Perform session token refresh check (Public endpoint)
+commonRouter.get("/check-auth", checkAuth);

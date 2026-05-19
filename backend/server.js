@@ -1,122 +1,74 @@
-import exp from 'express'
-import { connect } from 'mongoose'
-import { config } from 'dotenv'
+// Import dotenv config immediately at the top to populate process.env before all downstream imports evaluate
+import 'dotenv/config';
+// Import the Express framework
+import exp from 'express';
+// Import the modular database connection bootstrapper
+import { connectDB } from './config/db.js';
 
-config()
+// Import feature-specific router modules
+import { userRoute } from './APIs/UserAPI.js';
+import { adminRoute } from './APIs/AdminAPI.js';
+import { authorRoute } from './APIs/AuthorAPI.js';
+import { commonRouter } from './APIs/CommonAPI.js';
 
-import { userRoute } from './APIs/UserAPI.js'
-import { adminRoute } from './APIs/AdminAPI.js'
-import { authorRoute } from './APIs/AuthorAPI.js'
-import { commonRouter } from './APIs/CommonAPI.js'
+// Import middleware to parse and parse cookie headers
+import cookieParser from 'cookie-parser';
+// Import CORS middleware to manage Cross-Origin Resource Sharing
+import cors from 'cors';
 
-import cookieParser from 'cookie-parser'
-import cors from 'cors'
+// Instantiate the Express application
+const app = exp();
 
-const app = exp()
-
-//use cors middleware
+// Enable Cross-Origin Resource Sharing (CORS) with specific trusted client domains
 app.use(cors({
   origin: [
-    "http://localhost:5173",
-    "https://blog-app-xi-lovat.vercel.app"
+    "http://localhost:5173", // Local dev client port
+    "https://blog-app-xi-lovat.vercel.app" // Production client URL
   ],
-  credentials: true
+  credentials: true // Permits exchanging HTTP authorization session cookies
 }));
 
-// body parser
-app.use(exp.json())
+// Apply JSON body parser middleware to parse incoming request payloads
+app.use(exp.json());
+// Apply Cookie Parser middleware to populate req.cookies from request headers
+app.use(cookieParser());
 
-app.use(cookieParser())
+// Register API routing groups onto Express sub-paths
+app.use('/user-api', userRoute);
+app.use('/admin-api', adminRoute);
+app.use('/author-api', authorRoute);
+app.use('/common-api', commonRouter);
 
-// connect APIs
-app.get('/', (req, res) => {
-  res.send("Blog App API is running...");
-});
-
-app.use('/user-api', userRoute)
-
-app.use('/admin-api', adminRoute)
-
-app.use('/author-api', authorRoute)
-
-app.use('/common-api', commonRouter)
-
-// DB connection
-const connectDB = async () => {
-
+/**
+ * Initiates the application boot sequence.
+ * Establishes MongoDB connection and starts the Express server listening on PORT.
+ */
+const startServer = async () => {
   try {
+    // Await database connection establishment
+    await connectDB();
 
-    await connect(process.env.DB_URL)
-
-    console.log("DB Connection Successful")
-
+    // Start Express listening on port loaded from env
     app.listen(process.env.PORT, () =>
       console.log("Server Started.......")
-    )
-
+    );
   } catch (err) {
-
-    console.log("Err occurred", err)
+    // Log server boot and connection failures
+    console.log("Err occurred", err);
   }
-}
+};
 
-connectDB()
+// Start the server
+startServer();
 
-// invalid path middleware
+// Middleware: Route fallback to handle unregistered or invalid URLs (404 Fallback)
 app.use((req, res, next) => {
+  res.status(404).send({ message: "Invalid path" });
+});
 
-  res.status(404).json({
-    message: `${req.url} Invalid path`
-  })
-})
-
-// error handling middleware
+// Middleware: Global Error Handling pipeline to capture and normalize exceptions
 app.use((err, req, res, next) => {
-
-  console.log("Error name:", err.name);
-  console.log("Error code:", err.code);
-  console.log("Full error:", err);
-
-  // mongoose validation error
-  if (err.name === "ValidationError") {
-    return res.status(400).json({
-      message: "error occurred",
-      error: err.message,
-    });
-  }
-
-  // mongoose cast error
-  if (err.name === "CastError") {
-    return res.status(400).json({
-      message: "error occurred",
-      error: err.message,
-    });
-  }
-
-  // duplicate key error
-  const errCode =
-    err.code ??
-    err.cause?.code ??
-    err.errorResponse?.code;
-
-  const keyValue =
-    err.keyValue ??
-    err.cause?.keyValue ??
-    err.errorResponse?.keyValue;
-
-  if (errCode === 11000) {
-
-    const field = Object.keys(keyValue)[0];
-
-    const value = keyValue[field];
-
-    return res.status(409).json({
-      message: "error occurred",
-      error: `${field} "${value}" already exists`,
-    });
-  }
-
-  // custom status errors
+  // Scenario A: Custom HTTP status exceptions thrown intentionally in codebase
   if (err.status) {
     return res.status(err.status).json({
       message: "error occurred",
@@ -124,10 +76,27 @@ app.use((err, req, res, next) => {
     });
   }
 
-  // default server error
+  // Scenario B: MongoDB/Mongoose validation constraint failures
+  if (err.name === "ValidationError") {
+    // Collect specific validation message strings
+    const errorDetails = Object.values(err.errors).map((val) => val.message);
+    return res.status(400).json({
+      message: "validation error",
+      error: errorDetails[0], // Respond with the first occurred validation error details
+    });
+  }
+
+  // Scenario C: Mongoose CastError (e.g. searching with an invalid format ObjectId)
+  if (err.name === "CastError") {
+    return res.status(400).json({
+      message: "cast error",
+      error: `Invalid format for field ${err.path}`,
+    });
+  }
+
+  // Scenario D: Default generic internal server exceptions (500 Internal Error)
   res.status(500).json({
     message: "error occurred",
-    error: "Server side error",
+    error: err.message || err,
   });
 });
-

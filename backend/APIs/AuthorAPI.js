@@ -1,182 +1,32 @@
+// Import Express module to instantiate router
 import exp from "express";
-import { register } from "../services/authService.js";
-import { ArticleModel } from "../models/ArticleModel.js";
+// Import token verification middleware for author role checking
 import { verifyToken } from "../middlewares/verifyToken.js";
+// Import Multer upload middleware configuration for managing file buffers
 import { upload } from "../config/multer.js";
-import cloudinary from "../config/cloudinary.js";
-import { uploadToCloudinary } from "../config/cloudinaryUpload.js";
+// Import author controller handlers
+import {
+  registerAuthor,
+  createArticle,
+  getAuthorArticles,
+  editArticle,
+  toggleArticleStatus,
+} from "../controllers/authorController.js";
 
+// Instantiate Express router for Author endpoints
 export const authorRoute = exp.Router();
 
-//Register author(public)
-authorRoute.post("/users", upload.single("profileImageUrl"), async (req, res, next) => {
+// Route: Register new author (Public endpoint with media profile image upload)
+authorRoute.post("/users", upload.single("profileImageUrl"), registerAuthor);
 
-  let cloudinaryResult;
+// Route: Create new article (Restricted to AUTHOR role)
+authorRoute.post("/articles", verifyToken("AUTHOR"), createArticle);
 
-  try {
+// Route: Read all articles created by the authenticated author
+authorRoute.get("/articles", verifyToken("AUTHOR"), getAuthorArticles);
 
-    //get user obj
-    let userObj = req.body;
+// Route: Update an existing article's data fields
+authorRoute.put("/articles", verifyToken("AUTHOR"), editArticle);
 
-    // upload image
-    if (req.file) {
-      cloudinaryResult = await uploadToCloudinary(req.file.buffer);
-    }
-
-    // register user
-    const newUserObj = await register({
-      ...userObj,
-      role: "AUTHOR",
-      profileImageUrl: cloudinaryResult?.secure_url,
-    });
-
-    res.status(201).json({
-      message: "user created",
-      payload: newUserObj,
-    });
-
-  } catch (err) {
-
-    // rollback uploaded image
-    if (cloudinaryResult?.public_id) {
-      await cloudinary.uploader.destroy(cloudinaryResult.public_id);
-    }
-
-    next(err);
-  }
-});
-
-//Create article
-authorRoute.post("/articles", verifyToken("AUTHOR"), async (req, res, next) => {
-
-  try {
-
-    let article = {
-      ...req.body,
-      author: req.user._id
-    };
-
-    let newArticleDoc = new ArticleModel(article);
-
-    let createdArticleDoc = await newArticleDoc.save();
-
-    res.status(201).json({
-      message: "article created",
-      payload: createdArticleDoc
-    });
-
-  } catch (err) {
-    next(err);
-  }
-});
-
-//Read articles of author
-authorRoute.get("/articles", verifyToken("AUTHOR"), async (req, res, next) => {
-
-  try {
-
-    let articles = await ArticleModel
-      .find({ author: req.user._id })
-      .populate(
-        "author",
-        "firstName lastName email profileImageUrl"
-      );
-
-    res.status(200).json({
-      message: "articles",
-      payload: articles
-    });
-
-  } catch (err) {
-    next(err);
-  }
-});
-
-//edit article
-authorRoute.put("/articles", verifyToken("AUTHOR"), async (req, res, next) => {
-
-  try {
-
-    let author = req.user._id;
-
-    let { articleId, title, category, content } = req.body;
-
-    let articleOfDB = await ArticleModel.findOne({
-      _id: articleId,
-      author: author
-    });
-
-    if (!articleOfDB) {
-      return res.status(404).json({
-        message: "Article not found"
-      });
-    }
-
-    let updatedArticle = await ArticleModel.findByIdAndUpdate(
-      articleId,
-      {
-        $set: { title, category, content },
-      },
-      {
-        new: true,
-        runValidators: true
-      }
-    );
-
-    res.status(200).json({
-      message: "article updated",
-      payload: updatedArticle
-    });
-
-  } catch (err) {
-    next(err);
-  }
-});
-
-//soft delete article
-authorRoute.patch("/articles/:id/status", verifyToken("AUTHOR"), async (req, res, next) => {
-
-  try {
-
-    const { id } = req.params;
-    const { isArticleActive } = req.body;
-
-    const article = await ArticleModel.findById(id);
-
-    if (!article) {
-      return res.status(404).json({
-        message: "Article not found"
-      });
-    }
-
-    // ownership check
-    if (
-      req.user.role === "AUTHOR" &&
-      article.author.toString() !== req.user._id
-    ) {
-      return res.status(403).json({
-        message: "Forbidden. You can only modify your own articles"
-      });
-    }
-
-    // already same state
-    if (article.isArticleActive === isArticleActive) {
-      return res.status(400).json({
-        message: `Article is already ${isArticleActive ? "active" : "deleted"}`
-      });
-    }
-
-    article.isArticleActive = isArticleActive;
-
-    await article.save();
-
-    res.status(200).json({
-      message: `Article ${isArticleActive ? "restored" : "deleted"} successfully`,
-      payload: article
-    });
-
-  } catch (err) {
-    next(err);
-  }
-});
-
+// Route: Soft delete or restore an article
+authorRoute.patch("/articles/:id/status", verifyToken("AUTHOR"), toggleArticleStatus);
